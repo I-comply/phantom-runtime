@@ -1,0 +1,53 @@
+.app-container {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  position: relative;
+}
+
+.header {
+  margin: 1.5rem;
+  padding: 1.5rem;
+  position: sticky;
+  top: 1.5rem;
+  z-index: 50;
+}
+
+.main-content {
+  padding: 0 1.5rem 1.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+/* Status indicators */
+.status-online {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--accent-green);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-offline {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-red);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--accent-red);
+}
+
+/* Override some default styles for dark theme */
+input, select, textarea {
+  background: rgba(19, 24, 32, 0.8);
+  border: 1px solid rgba(139, 148, 158, 0.3);
+  color: var(--text-primary);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.1);
+}

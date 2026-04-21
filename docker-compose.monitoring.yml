@@ -1,0 +1,157 @@
+version: '3.8'
+
+services:
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: phantom_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./observability/alerting-rules.yml:/etc/prometheus/alerting-rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    networks:
+      - phantom_monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Grafana - Visualization & Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: phantom_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: phantom_admin
+      GF_INSTALL_PLUGINS: 'grafana-piechart-panel'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana-provisioning.yml:/etc/grafana/provisioning/dashboards/phantom.yml
+      - ./observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yml
+    depends_on:
+      - prometheus
+    networks:
+      - phantom_monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # AlertManager - Alert Management
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: phantom_alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - phantom_monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9093/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Loki - Log Aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: phantom_loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki-config.yml:/etc/loki/local-config.yml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yml
+    networks:
+      - phantom_monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: phantom_jaeger
+    ports:
+      - "6831:6831/udp"  # Jaeger agent
+      - "14268:14268"    # Jaeger collector
+      - "16686:16686"    # Jaeger UI
+    environment:
+      COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+    volumes:
+      - jaeger_data:/badger
+    networks:
+      - phantom_monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:14268/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL - Event Store (if using local instead of Supabase)
+  postgres:
+    image: postgres:15-alpine
+    container_name: phantom_postgres_test
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: phantom
+      POSTGRES_PASSWORD: phantom_secure
+      POSTGRES_DB: phantom_test
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations/01_init_events.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./supabase/migrations/02_init_workspaces.sql:/docker-entrypoint-initdb.d/02_init.sql
+    networks:
+      - phantom_monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phantom"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Caching & Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: phantom_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - phantom_monitoring
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+  loki_data:
+  jaeger_data:
+  postgres_data:
+  redis_data:
+
+networks:
+  phantom_monitoring:
+    driver: bridge

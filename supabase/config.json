@@ -1,0 +1,64 @@
+{
+  "project_id": "YOUR_PROJECT_ID",
+  "db_url": "postgresql://postgres:[PASSWORD]@db.YOUR_PROJECT_ID.supabase.co:5432/postgres",
+  "api_url": "https://YOUR_PROJECT_ID.supabase.co",
+  "tables": [
+    {
+      "name": "events",
+      "description": "Immutable event store",
+      "rls_enabled": true
+    },
+    {
+      "name": "workspaces",
+      "description": "Multi-tenant workspaces",
+      "rls_enabled": true
+    },
+    {
+      "name": "workspace_users",
+      "description": "Workspace membership",
+      "rls_enabled": true
+    },
+    {
+      "name": "api_keys",
+      "description": "API key management",
+      "rls_enabled": true
+    },
+    {
+      "name": "snapshots",
+      "description": "Event snapshots",
+      "rls_enabled": true
+    },
+    {
+      "name": "defi_events",
+      "description": "DeFi-specific events",
+      "rls_enabled": true
+    }
+  ],
+  "edge_functions": [
+    {
+      "name": "event-processor",
+      "description": "Process incoming events",
+      "trigger": "POST /functions/v1/event-processor"
+    },
+    {
+      "name": "state-reconstructor",
+      "description": "Reconstruct entity state",
+      "trigger": "POST /functions/v1/state-reconstructor"
+    }
+  ],
+  "realtime": {
+    "enabled": true,
+    "tables": ["events", "snapshots", "defi_events"]
+  },
+  "authentication": {
+    "providers": [
+      "email",
+      "google",
+      "github"
+    ],
+    "redirect_urls": {
+      "development": "http://localhost:3000/auth/callback",
+      "production": "https://yourdomain.com/auth/callback"
+    }
+  }
+}
