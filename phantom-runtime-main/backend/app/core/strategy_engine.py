@@ -5,6 +5,7 @@ from typing import Dict, Any, List
 from datetime import datetime, timezone
 import logging
 import json
+from app.core.code_guard import validate_user_code
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +202,8 @@ for asset, amount in balances.items():
             'config': config,
         }
         
-        exec(code, safe_globals, safe_locals)
+        tree = validate_user_code(code)
+        exec(compile(tree, '<user_code>', 'exec'), safe_globals, safe_locals)  # nosec B102 - AST-validated, restricted builtins
         
         if 'result' not in safe_locals:
             raise ValueError("Strategy must define 'result' variable")

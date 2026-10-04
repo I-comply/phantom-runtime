@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 import logging
 import json
+from app.core.code_guard import validate_user_code
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,8 @@ class PluginEngine:
         }
         
         # Execute code
-        exec(code, safe_globals, safe_locals)
+        tree = validate_user_code(code)
+        exec(compile(tree, '<user_code>', 'exec'), safe_globals, safe_locals)  # nosec B102 - AST-validated, restricted builtins
         
         # Return result from 'result' variable
         if 'result' not in safe_locals:
