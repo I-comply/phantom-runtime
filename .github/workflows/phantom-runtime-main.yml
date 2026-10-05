@@ -1,0 +1,63 @@
+name: phantom-runtime-main
+on:
+  push:
+    paths: ["phantom-runtime-main/**", ".github/workflows/phantom-runtime-main.yml"]
+  pull_request:
+    paths: ["phantom-runtime-main/**", ".github/workflows/phantom-runtime-main.yml"]
+defaults:
+  run:
+    working-directory: phantom-runtime-main/backend
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: phantomos
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/phantomos
+      PHANTOM_BOOTSTRAP_ADMIN_KEY: ci-test-bootstrap-key
+    strategy:
+      matrix:
+        sandbox_executor: [subprocess, docker]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r requirements.txt pytest httpx2
+      - name: Pull pinned sandbox image (docker executor)
+        if: matrix.sandbox_executor == 'docker'
+        run: docker pull "$(python3 -c 'from app.core.sandbox import DEFAULT_IMAGE as i; print(i)')"
+      - run: python3 -m pytest tests/ -v
+        env:
+          SANDBOX_EXECUTOR: ${{ matrix.sandbox_executor }}
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install bandit pip-audit
+      - run: bandit -r app -ll
+      - run: pip-audit -r requirements.txt
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: phantom-runtime-main/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm install
+      - run: npm run build

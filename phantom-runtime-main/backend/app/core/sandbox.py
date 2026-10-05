@@ -85,7 +85,7 @@ def _run_docker(payload: bytes, timeout: float) -> dict:
         "--security-opt", "no-new-privileges", "--pids-limit", "32",
         "--memory", "128m", "--memory-swap", "128m", "--cpus", "1",
         "--user", f"{SANDBOX_UID}:{SANDBOX_GID}",
-        "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=8m",
+        "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=8m",  # nosec B108
         "-v", f"{WORKER}:/sandbox/sandbox_worker.py:ro",
         "-w", "/sandbox", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "HOME=/tmp",
         image, "python", "-I", "sandbox_worker.py",
