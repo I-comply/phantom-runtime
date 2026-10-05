@@ -1,0 +1,56 @@
+# Repo-wide safety net. Subprojects with their own build tooling keep their
+# own .gitignore (phantom-runtime-main/, phantom-runtime-main/frontend/,
+# agent-trust-layer/) for anything specific to that stack; this file covers
+# patterns that can show up anywhere in the tree.
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*credentials*.json
+*.secret
+.credentials
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / JS
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.next/
+out/
+coverage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Logs and local scratch
+*.log
+.cache/
+tmp/
+*.tmp
+
+# Archives (should never be committed to this repo)
+*.zip
+*.tar
+*.tar.gz
+*.tgz
