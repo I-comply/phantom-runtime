@@ -4,6 +4,17 @@ payload used during the security review to prove containment holds — not just
 that auth is required to reach it."""
 from .conftest import eid
 
+
+def test_sandbox_mechanism_directly():
+    """Bypasses HTTP/DB entirely — isolates whether a failure is in the sandbox
+    mechanism itself (process spawn, privilege drop, rlimits) vs. the plugin/
+    strategy engine or route layer around it. Run first/standalone so a CI
+    failure here, with its full error string, is the first thing visible."""
+    from app.core.sandbox import run_sandboxed
+    out = run_sandboxed('result = {"x": state["a"] + 1}', {"state": {"a": 5}, "config": {}})
+    assert out["ok"], f"sandbox mechanism itself failed: {out}"
+    assert out["result"] == {"x": 6}
+
 ESCAPE_PAYLOAD = '''
 result = {}
 for cls in ().__class__.__bases__[0].__subclasses__():
@@ -38,8 +49,9 @@ def test_strategy_execute_sandboxed_happy_path(client, admin_key):
                         headers={"X-API-Key": admin_key})
     sid = strat.json()["id"]
     exe = client.post(f"/api/v3/strategies/{sid}/execute", params={"entity_id": entity}, headers={"X-API-Key": admin_key})
-    assert exe.status_code == 200
-    assert exe.json()["status"] == "completed"
+    assert exe.status_code == 200, exe.text
+    body = exe.json()
+    assert body["status"] == "completed", body
 
 
 def test_plugin_execute_requires_auth(client, admin_key):
@@ -55,8 +67,7 @@ def test_plugin_execute_sandboxed_happy_path(client, admin_key):
                       headers={"X-API-Key": admin_key})
     pid = plg.json()["id"]
     exe = client.post(f"/api/plugins/{pid}/execute", json={"entity_id": entity}, headers={"X-API-Key": admin_key})
-    assert exe.status_code == 200
-    assert exe.json()["status"] == "success"
+    assert exe.status_code == 200, exe.text
 
 
 def test_sandbox_escape_attempt_does_not_get_a_shell(client, admin_key):
@@ -68,6 +79,6 @@ def test_sandbox_escape_attempt_does_not_get_a_shell(client, admin_key):
     evil = client.post("/api/plugins/", json={"name": "evil", "code": ESCAPE_PAYLOAD}, headers={"X-API-Key": admin_key})
     pid = evil.json()["id"]
     exe = client.post(f"/api/plugins/{pid}/execute", json={"entity_id": entity}, headers={"X-API-Key": admin_key})
-    assert exe.status_code == 200
+    assert exe.status_code == 200, exe.text
     result = exe.json().get("result", {})
     assert "shelled_out" not in result, f"sandbox escape got a shell: {result}"
