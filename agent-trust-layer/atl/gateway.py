@@ -1,6 +1,6 @@
 import json, os, secrets, sqlite3, urllib.request, uuid
 from pathlib import Path
-from .util import canon, sha256, mac, eq, now_ms, valid_id
+from .util import canon, sha256, mac, eq, now_ms, valid_id, http_open
 from .store import DB
 from .keys import make_provider
 from .ledger import Ledger, anchor_key, verify_conn
@@ -11,7 +11,8 @@ from .executor import make_executor
 from .client import req_string, intent_digest, approval_string
 
 MAX_PARAMS = 65536
-PRE_AUTH_FAILS = 30
+PRE_AUTH_FAILS = 30        # per (source, tenant, agent)
+PRE_AUTH_FAILS_SRC = 1000  # per source backstop against identity spraying
 
 
 class BadRequest(Exception):
@@ -26,6 +27,7 @@ class Core:
     def __init__(self, data_dir, manifest=None):
         self.dir = Path(data_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
+        os.chmod(self.dir, 0o700)
         self.keys = make_provider(self.dir)
         self.db = DB(self.dir / "atl.db")
         self.ident = Identity(self.db, self.keys)
@@ -83,7 +85,7 @@ class Core:
         url = os.environ.get("ATL_ANCHOR_WEBHOOK")
         if url:
             try:
-                urllib.request.urlopen(urllib.request.Request(
+                http_open(urllib.request.Request(
                     url, json.dumps(a).encode(), {"Content-Type": "application/json"}), timeout=5).read()
                 a["webhook"] = "sent"
             except Exception as e:
@@ -117,15 +119,14 @@ class Core:
         except Exception as e:
             return {"ok": False, "status": 500, "error": "internal"}
 
-    def _fail(self, src):
+    def _fail(self, src, t, a):
+        self._hit(f"fail:{src}:{t}:{a}")
         self._hit(f"fail:{src}")
         raise AuthError()
 
     def _invoke(self, req, src):
         if not isinstance(req, dict):
             raise BadRequest("bad_request")
-        if self._count(f"fail:{src}") >= PRE_AUTH_FAILS:
-            raise RateLimited()
         for k in ("tenant_id", "agent_id", "action", "timestamp", "nonce", "signature", "key_version"):
             if k not in req:
                 raise BadRequest(f"missing:{k}")
@@ -134,6 +135,8 @@ class Core:
         if not (valid_id(t) and valid_id(a) and valid_id(action) and isinstance(nonce, str) and 8 <= len(nonce) <= 64
                 and isinstance(sig, str) and len(sig) <= 128 and type(ts) is int and type(ver) is int):
             raise BadRequest("malformed")
+        if self._count(f"fail:{src}:{t}:{a}") >= PRE_AUTH_FAILS or self._count(f"fail:{src}") >= PRE_AUTH_FAILS_SRC:
+            raise RateLimited()
         params = req.get("params", {})
         if not isinstance(params, dict):
             raise BadRequest("params_not_object")
@@ -151,9 +154,9 @@ class Core:
         row = self.ident.lookup(t, a, "agent")
         good = eq(mac(self.ident.derive_row(row, t, a, "agent", ver), req_string(t, a, ver, action, params, ts, nonce)), sig)
         if not good or row is None or row["key_version"] != ver:
-            self._fail(src)
+            self._fail(src, t, a)
         if abs(n - ts) > self.policy.limits["skew_s"] * 1000:
-            self._fail(src)
+            self._fail(src, t, a)
         c = self.db.conn()
         c.execute("DELETE FROM nonces WHERE expires<?", (n,))
         if not self.ident.usable(row, ver, n):

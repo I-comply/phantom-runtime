@@ -9,6 +9,7 @@ MAX_BODY = 1 << 20
 def make_handler(core, admin_token):
     class H(BaseHTTPRequestHandler):
         server_version = "ATL"
+        timeout = 15  # per-connection socket timeout (slowloris)
 
         def log_message(self, *a):
             pass
@@ -24,7 +25,7 @@ def make_handler(core, admin_token):
 
         def _body(self):
             n = int(self.headers.get("Content-Length") or 0)
-            if n > MAX_BODY:
+            if n < 0 or n > MAX_BODY:
                 raise ValueError("too_large")
             return json.loads(self.rfile.read(n) or b"{}")
 

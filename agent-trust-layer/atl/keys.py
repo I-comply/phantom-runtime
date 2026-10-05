@@ -3,6 +3,7 @@ principal secrets) are computed from the master of a given version, so old data 
 Non-file providers never write plaintext key material to disk and never log it."""
 import base64, json, os, secrets, urllib.request
 from pathlib import Path
+from .util import http_open
 
 
 class KeyError_(Exception):
@@ -170,7 +171,7 @@ class _Vault:
                                      data=json.dumps(body).encode() if body is not None else None,
                                      headers={"X-Vault-Token": self.token, "Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=10) as r:
+            with http_open(req, 10) as r:
                 raw = r.read()
         except Exception as e:
             raise KeyError_(f"vault request failed: {type(e).__name__}")

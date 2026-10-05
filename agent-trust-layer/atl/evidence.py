@@ -17,7 +17,7 @@ class Evidence:
             data = data.encode()
         h = sha256(data)
         p = self._p(tenant, h)
-        if not p.exists():
+        if not p.exists() or sha256(p.read_bytes()) != h:  # rewrite missing or corrupt blob
             p.parent.mkdir(parents=True, exist_ok=True)
             fd, tmp = tempfile.mkstemp(dir=p.parent)
             with os.fdopen(fd, "wb") as f:

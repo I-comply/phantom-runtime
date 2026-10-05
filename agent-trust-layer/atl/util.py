@@ -50,3 +50,12 @@ def eq(a, b):
 
 def now_ms():
     return int(time.time() * 1000)
+
+
+def http_open(req, timeout):
+    """urlopen restricted to http/https (no file:/ftp:/custom schemes)."""
+    import urllib.request
+    url = req.full_url if hasattr(req, "full_url") else str(req)
+    if not url.lower().startswith(("http://", "https://")):
+        raise ValueError("bad_url_scheme")
+    return urllib.request.urlopen(req, timeout=timeout)  # nosec B310

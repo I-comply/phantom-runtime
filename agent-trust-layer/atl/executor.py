@@ -6,6 +6,7 @@ WORKER = Path(__file__).with_name("worker.py")
 DEFAULT_IMAGE = "python@sha256:02108f5d322dd89f1c9e552442c25acb0543dfdbc455693a5599624f20d9155d"
 IMAGE_RE = re.compile(r"^[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$")
 MAX_OUT = 1 << 21
+TMPFS = "/tmp:rw,noexec,nosuid,nodev,size=16m"  # nosec B108
 
 
 class ExecutorConfigError(Exception):
@@ -67,7 +68,7 @@ class DockerExecutor(SubprocessExecutor):
         if not IMAGE_RE.match(self.image):
             raise ExecutorConfigError("docker image must be pinned by sha256 digest")
         self.docker = docker_bin
-        os.chmod(self.sandbox, 0o1777)  # container runs as 65534; sandbox is the only writable path
+        self._own(self.sandbox)
         try:
             r = subprocess.run([docker_bin, "version", "--format", "{{.Server.Version}}"],
                                capture_output=True, timeout=15)
@@ -76,9 +77,19 @@ class DockerExecutor(SubprocessExecutor):
         if r.returncode != 0:
             raise ExecutorConfigError("docker daemon unavailable")
 
+    @staticmethod
+    def _own(path):
+        """Container runs as 65534 and the sandbox is its only writable path. Prefer chown + 0700; an
+        unprivileged host cannot chown, so fall back to a sticky world-writable dir (documented)."""
+        try:
+            os.chown(path, 65534, 65534)
+            os.chmod(path, 0o700)
+        except PermissionError:
+            os.chmod(path, 0o1777)  # nosec B103
+
     def box(self, tenant):
         b = super().box(tenant)
-        os.chmod(b, 0o1777)
+        self._own(b)
         return b
 
     def argv(self, name, cmd=("python", "-I", "/atl/worker.py"), box=None):
@@ -86,7 +97,7 @@ class DockerExecutor(SubprocessExecutor):
                 "--pull", "never", "--network", "none", "--read-only", "--cap-drop", "ALL",
                 "--security-opt", "no-new-privileges", "--pids-limit", "64",
                 "--memory", "256m", "--memory-swap", "256m", "--cpus", "1", "--user", "65534:65534",
-                "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=16m",
+                "--tmpfs", TMPFS,
                 "-v", f"{box or self.sandbox}:/sandbox:rw",
                 "-v", f"{WORKER}:/atl/worker.py:ro",
                 "-w", "/sandbox", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "HOME=/tmp",
@@ -103,8 +114,8 @@ class DockerExecutor(SubprocessExecutor):
         except BaseException:
             try:
                 self._cleanup(name)  # hard kill + remove; also covers client-side timeout
-            except Exception:
-                pass
+            except Exception as e:
+                sys.stderr.write(f"atl: container cleanup failed for {name}: {type(e).__name__}\n")
             raise
         if p.returncode not in (0, 1) and not p.stdout:
             raise RuntimeError("docker_run_failed")
