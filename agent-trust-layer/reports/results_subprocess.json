@@ -1,0 +1,5987 @@
+{
+ "summary": {
+  "executor": "subprocess",
+  "tenants": 3,
+  "agents_per_tenant": 8,
+  "agent_instances": 24,
+  "requests": 744,
+  "wall_s": 5.79,
+  "throughput_rps": 128.4,
+  "pass": 744,
+  "fail": 0,
+  "ledger_verify": {
+   "t0": true,
+   "t1": true,
+   "t2": true
+  },
+  "events": {
+   "t0": 521,
+   "t1": 521,
+   "t2": 521
+  },
+  "rate_limit_attacker_status": 429,
+  "tamper_detected": true,
+  "tamper_error": "content hash mismatch at seq 3",
+  "anchor_seq": 521,
+  "latency_ms": {
+   "p50": 64.8,
+   "p95": 741.1,
+   "p99": 1428.0,
+   "max": 1736.4
+  }
+ },
+ "records": [
+  {
+   "agent": "t0/a0",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 82.40333700001656
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 52.66363900000215
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 71.12420900000416
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 455.81341700000166
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 77.24886599999081
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 14.459535000014512
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 13.204429000012397
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 62.599640000001955
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 7.080333000004657
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 3.4927880000168443
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 286.43074600000773
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 189.96621799999502
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 5.406011999980365
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 2.2158170000068367
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 51.75008199998388
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 213.73158700001227
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 26.061663999996654
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 42.86754200001042
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 37.95539000000758
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 3.1039330000055543
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 10.001611999996385
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 82.85021500000767
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 65.16135199998985
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 50.189028000005464
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 368.01366500000654
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 208.93795000000637
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 124.40430500001298
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 106.59406299998864
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 64.38953399998582
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 77.58992800000897
+  },
+  {
+   "agent": "t0/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 179.48286399999347
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 114.19382799999767
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 83.53735099998971
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 91.53384499998651
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 86.91075699999828
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 48.740843000018685
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 6.839310999993131
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 41.599520999994866
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 14.021191000011868
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 100.69243199998823
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 15.694300999996358
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 52.60862299999758
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 90.70639900002675
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 12.297936999999592
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 3.1000219999839373
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 44.75988000001507
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 79.99086399999555
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 4.811257999989493
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 30.916340999993963
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 141.03597100000798
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1074.4850869999993
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 13.601252999990265
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 104.39619499999253
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 143.141270000001
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 88.90693999998689
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 100.54384400001481
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 130.34544200002074
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 199.1226559999859
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 201.3720330000126
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 60.78408499999455
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 50.84805900000333
+  },
+  {
+   "agent": "t0/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 99.16302900001028
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 105.9038610000016
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 104.1977250000059
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 44.15484299997274
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 269.970987000022
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 68.12053999999534
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 45.16489900001375
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 11.208593999981531
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 8.44083299998033
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 132.2515090000138
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 4.321267000022999
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 64.05261900002301
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 32.387513999992734
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 8.602120000006153
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 21.77253499999665
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 17.85607300001857
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 57.80698000000939
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 156.7223260000219
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 31.369684999987157
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 77.04685699999914
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 63.10399899999197
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 241.0938280000039
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 591.0410539999873
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 96.34171899998023
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 898.232643
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 602.870557000017
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 91.78285200002279
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1119.1887910000275
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 47.46081000001823
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 43.909136999957354
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 46.25295399995366
+  },
+  {
+   "agent": "t0/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 64.77840500002685
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 230.74142900000538
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 310.4597139999896
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.20427599999357
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 54.14052699998706
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 64.04008900000235
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 8.694867999992084
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 62.32675100000051
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 43.43405400001643
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 9.165981999984751
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 11.104372999994894
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 38.05973900000481
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 73.98351999998454
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 18.7498880000021
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 3.526990000011665
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 2.698485999985678
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 66.25177499998358
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 18.517981000002237
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 7.700192000015704
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 114.88171300001682
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 346.0549030000095
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 6.981733999992912
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 293.84701600000085
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 59.93052200000193
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 844.5368870000038
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 160.4875609999965
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1617.7832620000174
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 65.36907400001724
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 186.0070929999722
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 220.11528699999872
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 100.4836700000169
+  },
+  {
+   "agent": "t0/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 43.878399999982776
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1444.0188380000052
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 132.21431700000608
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 161.4150150000171
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 185.5892310000229
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 155.13140199999498
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 97.08467800001586
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 7.160235000014836
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 776.7466269999943
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 16.039002000013625
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 669.0557180000098
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 124.86692600000993
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 79.22996499999613
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 50.93483900000706
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 13.735233999994989
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 95.03383300000223
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.94227599997771
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 37.07819499999232
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 28.907864000018435
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 77.00483800002189
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 28.783744000008937
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 15.66077199998972
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 96.39552600000911
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 59.84457899998574
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 625.9949120000101
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 47.25199199998542
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 57.829163000008066
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 46.22319300000299
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 53.77970400002141
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 149.8731440000256
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 77.70425500001465
+  },
+  {
+   "agent": "t0/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 40.9555069999783
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 301.36888299998077
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 106.43532500000674
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 57.553173999991714
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 42.41316200000256
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 36.003713000013704
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 13.90663099999756
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 12.194730999993908
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 3.59715599998367
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 4.094331999993983
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 14.41008300000135
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 72.09597400000689
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 182.64959100000056
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 4.893385999992006
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 11.88147499999559
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 6.986223000012615
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 32.458427999983996
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 4.853229999980613
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 3.9122080000026926
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 92.2096129999943
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 142.08020699999224
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 61.863384000020005
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1736.3555009999914
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 108.31578299999478
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 227.38672100001622
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 46.121859999999515
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 231.17034599999897
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 81.33315300000277
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 42.667503000018314
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 206.78373300000885
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 179.55821300000707
+  },
+  {
+   "agent": "t0/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 123.52412099997423
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 284.9784260000092
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 48.85449899998662
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 100.81562600001348
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 55.25084000001357
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 882.3027429999968
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 76.58633700000905
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 6.585042000011754
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 13.555628000005981
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 7.997939999995651
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 26.51796300000342
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 50.197596999993266
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 73.1334789999778
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 14.768465999992486
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 189.66003299999556
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 8.3939270000144
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 249.02980800001728
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 7.603359999990289
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 26.88661300001627
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 209.25741499999617
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 6.433659000009584
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 3.962276000009979
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 144.3651490000093
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 46.98215700000219
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 38.103868000007424
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 86.83552599998734
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 164.60705699998357
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 37.877527999995664
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 377.3189460000026
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 697.2545360000026
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 82.86549799998966
+  },
+  {
+   "agent": "t0/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 73.9638809999974
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1300.8727840000063
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 229.83060900000396
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 48.10099899998477
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 247.11395099998867
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 108.06941100000245
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 11.625886000018681
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 20.161245999986477
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 11.890303000001268
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 28.088777999982995
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 27.567374999989624
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 127.16937799999073
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 912.2787430000017
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 141.63146800001414
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 17.964257000016914
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 8.568705000016053
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.54003000001308
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 44.29002800000603
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 7.423629000015808
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 121.17513299997995
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 10.670370000013918
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 3.206529000010505
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 49.57665899999597
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 250.3405009999824
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 365.09695099999817
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 112.12783999999942
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 46.90020500001424
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 53.452383000006876
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 104.75457399999755
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 45.316623999980266
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 108.03704799999991
+  },
+  {
+   "agent": "t0/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 108.44811100000129
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 771.2933609999766
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 43.85576299998206
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 227.72520699999177
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 495.7071679999956
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 261.36780300001305
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 31.4253180000037
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 28.806896000020288
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 12.237864000013587
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 5.489780000004885
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 748.1375689999936
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 53.554885000011154
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 296.84036599999786
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 25.534020999998575
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 8.8303450000069
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 63.150116000002754
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 60.73182000000088
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 741.0784329999842
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 8.795765999991545
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 94.69483300000547
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 6.667881999987912
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 241.8571959999838
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 59.14632899998651
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 118.85745500001121
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 54.99866299999212
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 56.190936999996666
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 102.245374000006
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 81.62585200000194
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.21533400000612
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 62.85657899996977
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 42.49949400002606
+  },
+  {
+   "agent": "t1/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 64.66218700001036
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1141.2365869999803
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 42.20465400001672
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 267.14810199999306
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 998.1245859999888
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 59.28191800001059
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 18.516519000002063
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 18.60251200000107
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 7.639831999995295
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 64.75112900000113
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 51.62691299997846
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 62.763467000024775
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 257.56307399998946
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 50.705418999996255
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 2.5339219999978013
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 270.2858689999914
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 49.226036999982625
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 51.44799199999284
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 5.336498999980677
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 58.99591600001486
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 4.54882600001838
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 89.89532500001474
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 142.27099199999316
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 47.69929500000103
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 102.63099900001293
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 129.96386400001825
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 58.624575999999706
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 88.87075900000241
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 68.05153700000233
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1428.0177470000126
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 48.766203000013775
+  },
+  {
+   "agent": "t1/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 42.292307000025176
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1184.379204999999
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 52.83436300001654
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 373.1442459999812
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 283.77126699999167
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 196.96502499999724
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 95.26454799998874
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 6.467317000016237
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 3.2483640000009473
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 110.9658599999932
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 159.08926800000245
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 1479.1562669999792
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 525.2494720000129
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 90.82689900000673
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 11.248080999990862
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 14.026678999982778
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 70.16418199998498
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 11.236365999991449
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 10.529542999989872
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 83.91176999998606
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 11.075155000014547
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 22.064712000002373
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 179.51616499999545
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 156.17436700000553
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 58.43448400003126
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 47.660145000008924
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 48.2660770000507
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 32.55294699999922
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 39.892377000001034
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 63.918008999962694
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 85.5160229999683
+  },
+  {
+   "agent": "t1/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 43.976661999977296
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1162.3831979999864
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1626.3372580000066
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 414.11181399999464
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 696.4139389999957
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 487.9816670000139
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 12.043157999983123
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 14.154310000009218
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 32.027291000019886
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 12.325570000001562
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 9.797559999981331
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 422.4509409999939
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 178.63710799997534
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 8.878372000026502
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 13.52439200002209
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 89.98674800000117
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 42.16549000000214
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 5.448548000003939
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 4.925131999982568
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 39.569771000003584
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 6.988312999965274
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 3.731819999984509
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 43.647402999965834
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 32.56684199999427
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 52.97323799999276
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 49.50262799997063
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 35.97143799999003
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 35.71599700001116
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 55.71769199997334
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 41.67077399995378
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 32.69140099996548
+  },
+  {
+   "agent": "t1/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 30.734036000012566
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 90.17091700002311
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 87.78688300000681
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 159.58219599997392
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 44.132947999997896
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 58.846927999979926
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 116.75533100000735
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 4.615626000003203
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 4.628018999994765
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 47.293362999994315
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 8.358103000006167
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 36.78758899999934
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 45.27933399998574
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 33.27289199998518
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 11.42849100000376
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 189.51201100000503
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 54.569019000012986
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 12.666156999983968
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 26.364214000011543
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 410.32216599998605
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 15.852668000007952
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 84.8457470000028
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 167.031264000002
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 60.483274000006304
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 294.692528000013
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 94.2356170000096
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 126.0359529999846
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 80.00465099999587
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 123.4690479999756
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 79.99819200000502
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 113.31090299998436
+  },
+  {
+   "agent": "t1/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 938.1447929999922
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 199.37528799999882
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 39.402563000010105
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 62.62813399999345
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 143.7919020000038
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 41.57102399997825
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 5.44917299998815
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 12.889121000000614
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 6.846641000009868
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 10.094981999998254
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 7.591911000019991
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 235.62068999999042
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 483.4083060000012
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 167.78944500001103
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 9.985036000017544
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 63.226700999990726
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 303.88448200000084
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 85.48448899998107
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 18.37046800000053
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 99.62111900000536
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1335.3013410000187
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 6.7624560000183465
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 78.64087799998742
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 294.89528300001666
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 64.62775700001089
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 105.0896960000216
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 94.2209739999953
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 361.4434170000038
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 89.58785100000455
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 41.52696799999944
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 301.7723000000103
+  },
+  {
+   "agent": "t1/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 172.98873400000048
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 117.71131899999432
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 38.663642999978265
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 55.99285299999224
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 79.89374799998927
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 122.95274100000597
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 123.5548779999931
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 4.75331300000903
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 6.9948149999845555
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 20.963397000002715
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 14.21646800000076
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 453.6519429999828
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 57.81141200000661
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 130.35921400000916
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 13.891852000000426
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 645.4528299999822
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 374.34870300000966
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 14.625985999998647
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 58.24123599998643
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 86.31935400001112
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 84.88732199998594
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 29.938161000018226
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 104.4724730000155
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 361.08354300000656
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 248.0562240000097
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 44.62050699999054
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 137.82947499998954
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 271.7371420000063
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 417.03806599997506
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 152.1114779999948
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 130.9343690000162
+  },
+  {
+   "agent": "t1/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 171.0582890000012
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 88.13674000001015
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 41.26072000002523
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 63.243171000010534
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 202.7334789999884
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 33.06411500000195
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 49.66957700000307
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 5.6255970000052
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 5.035918000004358
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 9.8047930000007
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 9.054563999995935
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 105.60092199997939
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 107.09574199998428
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 11.46736499998724
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 11.511710999997149
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 14.273756999983789
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.91362799999479
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 138.83166799999458
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 4.452769000010903
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 53.56632199999467
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 534.9126309999974
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 37.64797499999872
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 78.8888089999773
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 46.326433000018596
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 80.50407900000778
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 115.52778399999397
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 126.833744999999
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 158.84223000000475
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 192.988186000008
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 789.134679
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 70.09762100000216
+  },
+  {
+   "agent": "t1/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 333.7307909999936
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1118.6087840000027
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 485.44472099999325
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 70.68440600002646
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.21694799999045
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.50332900001399
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 40.52040199999851
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 5.805664000007482
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 838.9385739999966
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 14.686573000005865
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 23.93999299999905
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 158.02086400000803
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 61.70385300001158
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 37.06728999998177
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 7.116641999999729
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 6.822771000003058
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 194.78946600000313
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 8.206857000004675
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 340.41400299997804
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 67.81374999999912
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 141.47773499999516
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 25.238068999982488
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 118.21051999999099
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.33663399999546
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 47.86175699999262
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 72.35243800002422
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 51.516891999995096
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 81.38099000001375
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 711.1923399999966
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 34.35082299995429
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 121.05296199996474
+  },
+  {
+   "agent": "t2/a0",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 66.921141000023
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 300.5610780000154
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 132.1043140000029
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 323.72031200000606
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 106.55904800000826
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 84.16749299999537
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 43.60510699999054
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 26.930269999979828
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 3.7304630000107863
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 10.174454000008382
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 164.183587999986
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 68.56548900000803
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 392.30249300001674
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 142.45676999999546
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 6.279858999988619
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 138.31074300000523
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 145.3579770000033
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 43.1658539999944
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 90.62196200000017
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 830.6602669999847
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 15.874332999999297
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 14.12798000001203
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 45.74904500000798
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 52.32713200001626
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 162.83139499998356
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 150.00103299999523
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 108.2060370000022
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 326.4341860000002
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 506.5254320000179
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 283.1519359999959
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 84.93364799997494
+  },
+  {
+   "agent": "t2/a1",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 64.39532899997857
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1150.2723689999925
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 78.36455800000408
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 85.9023499999978
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 63.54864500002577
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 67.64472200001137
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 24.756647000003795
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 4.828639999999496
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 1134.4073700000195
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 24.292881999997462
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 56.755218999995805
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 191.59923000000845
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 51.40930999999682
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 41.47538199998735
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 4.728479999982937
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 452.971142999985
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 70.92226599999663
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 8.575833999998395
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 19.842404000002034
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 55.706170999997084
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 3.000304000011056
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 39.282708000001776
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 54.74817000001053
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 153.49088199999983
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.75656200000913
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 52.38580700000739
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 117.01221900000291
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 176.17240300000958
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 113.65630100002022
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 217.47903700000393
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 180.26226300000303
+  },
+  {
+   "agent": "t2/a2",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 578.4129950000079
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1132.1401980000019
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 68.96517900000276
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 72.43425299998307
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 56.04098099999533
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 61.068108999990045
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 119.76371200000813
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 8.441567999994959
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 137.74366000001237
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 20.29177899999013
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 10.548587000016596
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 122.80378200000541
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 70.90721899999153
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 187.57365300001538
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 27.456486999994922
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 287.0621579999977
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 690.9402969999974
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 153.67935000000443
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 66.49730299997714
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 96.23476100000516
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 45.15056100001402
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 1041.1676250000141
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 136.6463049999993
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 97.53396899998279
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 273.90781700000844
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 74.67122399998516
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 139.01454099999455
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 43.95369200000232
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 55.73082900002646
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 31.361008000033053
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 45.45737499995539
+  },
+  {
+   "agent": "t2/a3",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 55.580589000044256
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1116.2568830000055
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 51.47219100001621
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 55.352854999995316
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 168.22110100000032
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 80.14220800001226
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 23.31671999999685
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 22.799388999999337
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 22.525614000016958
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 198.2798070000058
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 15.949403000007578
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 262.6801240000134
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 199.7400099999993
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 30.646493999995528
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 13.673046999997496
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 13.532481999988022
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 101.88420599999404
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 24.767562999983284
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 12.219208000004755
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 111.82880500001602
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 12.40419000001225
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 6.957685999992691
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 110.53136199998903
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 139.98845399999027
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 186.76646200000846
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 61.40723600000797
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 51.25558299999966
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 63.96959499997479
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 196.63770799999725
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 618.4841879999965
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1551.3831900000241
+  },
+  {
+   "agent": "t2/a4",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.08098200000268
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1701.7414170000222
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 152.88739699997222
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 114.28200400001742
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 77.44913300001599
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 63.92066200001523
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 6.822462999991785
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 13.698094999995192
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 6.481000999997377
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 8.433523000007881
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 17.63088699999571
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 64.85450499999956
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 80.81463499999586
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 126.37691700001596
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 7.880881000005502
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 18.21913899999572
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 193.26824200001624
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 13.323196000015969
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 6.012745999981917
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 127.54045799999858
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 9.104293999996571
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 6.263302999997222
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 51.227229000005536
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 294.3887140000072
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 38.7879870000063
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 78.33175499999356
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 118.19626100000846
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 132.2278749999839
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 65.96639900001833
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 225.97940300002506
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 289.41941099998303
+  },
+  {
+   "agent": "t2/a5",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 55.35799899999461
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1335.4596830000105
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 54.644042999996145
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 268.0251469999746
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 119.47172600000044
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 193.38914399997975
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 15.151418999977295
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 62.21625300000255
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 5.754622000011977
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 44.41042499999526
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 90.4159199999981
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 183.9382569999941
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 883.5382470000184
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 193.04952199999548
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 24.541918000011265
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 7.882918000007066
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 242.87840499999902
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 49.188925999999356
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 352.2657339999853
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 107.89182599998526
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 40.394437000003336
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 7.044352000008303
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 45.206330000013395
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 292.85346000000345
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 59.49781000001053
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 69.24031599999125
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 95.07600099996694
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 51.620098999990205
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 77.18583799999124
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 489.7780900000157
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 89.72552299997005
+  },
+  {
+   "agent": "t2/a6",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 36.8395840000062
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "honest_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1146.4486829999885
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "honest_hash",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 118.06160599999771
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "honest_write",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 156.9220380000047
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "honest_read",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 56.63239399999043
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "replay_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 55.05495699998164
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "replay_second",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 66.04494300000852
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "forged_signature",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 5.80880599997613
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "cross_tenant_secret",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 40.33655800000702
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "unknown_tool",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 170.5111979999856
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "param_injection",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 29.663991999996142
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "path_traversal",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 628.7633700000015
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "absolute_path",
+   "expected": 502,
+   "status": 502,
+   "ok": true,
+   "ms": 144.26313699999582
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "oversize_param",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 123.40913799999953
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "stale_timestamp",
+   "expected": 401,
+   "status": 401,
+   "ok": true,
+   "ms": 12.932997000007163
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "destructive_no_approval",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 11.172830999981898
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "destructive_approved",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 62.626002999991215
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "approval_reuse",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 7.949789999997847
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "approval_wrong_intent",
+   "expected": 403,
+   "status": 403,
+   "ok": true,
+   "ms": 10.665778000003456
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "idem_first",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 1322.1348840000076
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "idem_replay",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 13.065197999992506
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "idem_reuse_diff_params",
+   "expected": 400,
+   "status": 400,
+   "ok": true,
+   "ms": 19.042987999995376
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 58.24306200000251
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 64.24399300001937
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 258.3725920000006
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 49.98943599997574
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 264.10857300001567
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 351.9731569999749
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 62.63780799997676
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 48.51059200001373
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 163.92320299996754
+  },
+  {
+   "agent": "t2/a7",
+   "scenario": "burst_echo",
+   "expected": 200,
+   "status": 200,
+   "ok": true,
+   "ms": 50.297927000030995
+  }
+ ]
+}

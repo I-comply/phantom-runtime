@@ -22,6 +22,15 @@ jobs:
       - name: Pull pinned sandbox image (enables Docker executor tests)
         run: docker pull "$(python3 -c 'from atl.executor import DEFAULT_IMAGE as i; print(i)')"
       - run: ./verify.sh
+      - run: python3 -m harness.run_agents --tenants 2 --agents 4 --out /tmp/harness
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install bandit
+      - run: bandit -r atl -ll
   sbom:
     runs-on: ubuntu-latest
     needs: verify

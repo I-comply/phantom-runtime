@@ -157,6 +157,25 @@ class TestCore(Base):
         q = sign_request(self.r["secret"], T, "reader", 1, "echo", {"text": "x"})
         self.assertEqual(self.c.invoke(q, src="9.9.9.9")["status"], 429)
 
+    def test_shared_source_other_agent_not_locked(self):
+        for _ in range(35):  # one identity floods bad signatures from a shared NAT address
+            q = sign_request(self.r["secret"], T, "reader", 1, "echo", {"text": "x"}); q["signature"] = "0" * 64
+            self.c.invoke(q, src="7.7.7.7")
+        q = sign_request(self.w["secret"], T, "writer", 1, "echo", {"text": "x"})
+        self.assertEqual(self.c.invoke(q, src="7.7.7.7")["status"], 200)  # different agent, same source
+
+    def test_identity_spraying_hits_source_backstop(self):
+        import atl.gateway as G
+        old, G.PRE_AUTH_FAILS_SRC = G.PRE_AUTH_FAILS_SRC, 20
+        try:
+            for i in range(25):
+                q = sign_request(self.r["secret"], T, f"ghost{i}", 1, "echo", {"text": "x"}); q["signature"] = "0" * 64
+                self.c.invoke(q, src="8.8.8.8")
+            q = sign_request(self.w["secret"], T, "writer", 1, "echo", {"text": "x"})
+            self.assertEqual(self.c.invoke(q, src="8.8.8.8")["status"], 429)
+        finally:
+            G.PRE_AUTH_FAILS_SRC = old
+
     def test_worker_timeout(self):
         r = self.c.executor.run("echo", {"text": "x"}, 0.0001)
         self.assertFalse(r["ok"])

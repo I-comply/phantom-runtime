@@ -1,13 +1,14 @@
 """Minimal MCP (stdio JSON-RPC) adapter. Every tool call is signed and sent through the ATL gateway."""
-import json, os, sys, urllib.request
+import json, os, sys, urllib.error, urllib.request
 from .client import sign_request
 from .policy import Policy
+from .util import http_open
 
 
 def _call(url, req):
     r = urllib.request.Request(url + "/v1/invoke", json.dumps(req).encode(), {"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(r, timeout=30) as f:
+        with http_open(r, 30) as f:
             return json.loads(f.read())
     except urllib.error.HTTPError as e:
         return json.loads(e.read() or b"{}")
