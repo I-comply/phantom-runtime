@@ -4,7 +4,8 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from app.core.database import get_db
 from app.core.defi_manager import DeFiEventManager, AsyncPipeline
-from app.core.deps import require_permission
+from app.core.deps import require_permission, is_admin
+from app.core.models_v3 import APIKey
 from datetime import datetime
 
 router = APIRouter(prefix="/api/defi", tags=["defi"])
@@ -16,7 +17,6 @@ class DeFiEventCreate(BaseModel):
     amount: str
     price: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = {}
-    workspace_id: Optional[str] = None
 
 class DeFiEventResponse(BaseModel):
     id: int
@@ -26,7 +26,7 @@ class DeFiEventResponse(BaseModel):
     amount: str
     price: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -34,9 +34,10 @@ class DeFiEventResponse(BaseModel):
 def create_defi_event(
     event: DeFiEventCreate,
     db: Session = Depends(get_db),
-    _auth=Depends(require_permission("defi", "write")),
+    api_key_obj: APIKey = Depends(require_permission("defi", "write")),
 ):
-    """Create a DeFi event (deposit, withdraw, trade, etc.)"""
+    """Create a DeFi event (deposit, withdraw, trade, etc.), stamped with the
+    caller's own workspace (never caller-supplied)."""
     try:
         defi_event = DeFiEventManager.create_defi_event(
             db=db,
@@ -46,7 +47,7 @@ def create_defi_event(
             amount=event.amount,
             price=event.price,
             metadata=event.metadata,
-            workspace_id=event.workspace_id
+            workspace_id=str(api_key_obj.tenant_id),
         )
         return defi_event
     except ValueError as e:
@@ -56,10 +57,12 @@ def create_defi_event(
 def get_portfolio(
     entity_id: str,
     db: Session = Depends(get_db),
-    _auth=Depends(require_permission("defi", "read")),
+    api_key_obj: APIKey = Depends(require_permission("defi", "read")),
 ):
-    """Get portfolio summary for an entity"""
-    portfolio = DeFiEventManager.get_entity_portfolio(db, entity_id)
+    """Get portfolio summary for an entity, scoped to the caller's own
+    workspace (unscoped for admin keys)"""
+    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    portfolio = DeFiEventManager.get_entity_portfolio(db, entity_id, workspace_id)
     return portfolio
 
 @router.get("/supported-events")
