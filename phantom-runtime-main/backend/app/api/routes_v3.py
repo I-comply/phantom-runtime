@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.event_engine_v3 import EventEngineV3, AsyncEventPipeline
 from app.core.strategy_engine import StrategyEngine
 from app.core.security import SecurityManager, RBACMiddleware
-from app.core.deps import require_permission, require_api_key
+from app.core.deps import require_permission, require_api_key, is_admin
 from app.core.config import settings
 from app.core.models_v3 import APIKey
 from datetime import datetime
@@ -25,33 +25,22 @@ class EventCreateV3(BaseModel):
 @router.post("/events")
 def create_event_v3(
     event: EventCreateV3,
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key_obj: APIKey = Depends(require_permission("events", "write")),
 ):
-    """Create event with hash chaining"""
-    
-    tenant_id = None
-    created_by = None
-    
-    # Verify API key if provided
-    if x_api_key:
-        api_key_obj = SecurityManager.verify_api_key(db, x_api_key)
-        if api_key_obj:
-            RBACMiddleware.require_permission(api_key_obj, db, 'events', 'write')
-            tenant_id = str(api_key_obj.tenant_id)
-            created_by = api_key_obj.name
-    
+    """Create event with hash chaining. Requires an API key with events:write;
+    the event is stamped with the caller's own tenant_id (not caller-supplied)."""
     created_event = EventEngineV3.create_event(
         db=db,
         entity_id=event.entity_id,
         event_type=event.event_type,
         payload=event.payload,
-        tenant_id=tenant_id,
+        tenant_id=str(api_key_obj.tenant_id),
         priority=event.priority,
         source=event.source,
-        created_by=created_by
+        created_by=api_key_obj.name
     )
-    
+
     return {
         "id": created_event.id,
         "entity_id": created_event.entity_id,
@@ -61,9 +50,15 @@ def create_event_v3(
     }
 
 @router.get("/events/chain/{entity_id}")
-def get_event_chain(entity_id: str, db: Session = Depends(get_db)):
-    """Get complete event chain for entity"""
-    events = EventEngineV3.get_entity_chain(db, entity_id)
+def get_event_chain(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    api_key_obj: APIKey = Depends(require_permission("events", "read")),
+):
+    """Get complete event chain for entity. Scoped to the caller's own tenant
+    unless the caller is an admin key (admins see across tenants)."""
+    tenant_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    events = EventEngineV3.get_entity_chain(db, entity_id, tenant_id)
     return {
         "entity_id": entity_id,
         "chain_length": len(events),
@@ -81,9 +76,14 @@ def get_event_chain(entity_id: str, db: Session = Depends(get_db)):
     }
 
 @router.get("/events/verify/{entity_id}")
-def verify_chain_integrity(entity_id: str, db: Session = Depends(get_db)):
-    """Verify hash chain integrity"""
-    is_valid = EventEngineV3.verify_chain_integrity(db, entity_id)
+def verify_chain_integrity(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    api_key_obj: APIKey = Depends(require_permission("events", "read")),
+):
+    """Verify hash chain integrity. Same tenant scoping as /events/chain."""
+    tenant_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    is_valid = EventEngineV3.verify_chain_integrity(db, entity_id, tenant_id)
     return {
         "entity_id": entity_id,
         "chain_valid": is_valid
@@ -94,7 +94,8 @@ def verify_chain_integrity(entity_id: str, db: Session = Depends(get_db)):
 @router.post("/events/queue")
 def queue_event(
     event: EventCreateV3,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _auth: APIKey = Depends(require_permission("events", "write")),
 ):
     """Add event to async queue"""
     queue_item = AsyncEventPipeline.queue_event(
@@ -113,7 +114,15 @@ def queue_event(
     }
 
 @router.post("/events/process-queue")
-def process_queue(batch_size: int = 100, db: Session = Depends(get_db)):
+def process_queue(
+    batch_size: int = 100,
+    db: Session = Depends(get_db),
+    # events:write for now; this is an operational/batch-admin action across the
+    # whole queue (not scoped to one tenant) — worth its own 'system:operate'
+    # permission if this app grows a real ops/admin surface distinct from
+    # per-tenant writes.
+    _auth: APIKey = Depends(require_permission("events", "write")),
+):
     """Process queued events (manual trigger)"""
     count = AsyncEventPipeline.process_queue_batch(db, batch_size)
     return {

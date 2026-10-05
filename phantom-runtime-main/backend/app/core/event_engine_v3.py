@@ -70,16 +70,19 @@ class EventEngineV3:
         return event
     
     @staticmethod
-    def get_entity_chain(db: Session, entity_id: str) -> List[EventV3]:
-        """Get complete event chain for entity"""
-        return db.query(EventV3).filter(
-            EventV3.entity_id == entity_id
-        ).order_by(EventV3.block_index.asc()).all()
-    
+    def get_entity_chain(db: Session, entity_id: str, tenant_id: Optional[str] = None) -> List[EventV3]:
+        """Get complete event chain for entity. tenant_id=None means unscoped
+        (admin / internal callers only — see routes_v3.py for the caller-side gate);
+        route handlers must pass the caller's own tenant_id for non-admin keys."""
+        q = db.query(EventV3).filter(EventV3.entity_id == entity_id)
+        if tenant_id is not None:
+            q = q.filter(EventV3.tenant_id == tenant_id)
+        return q.order_by(EventV3.block_index.asc()).all()
+
     @staticmethod
-    def verify_chain_integrity(db: Session, entity_id: str) -> bool:
+    def verify_chain_integrity(db: Session, entity_id: str, tenant_id: Optional[str] = None) -> bool:
         """Verify hash chain integrity"""
-        events = EventEngineV3.get_entity_chain(db, entity_id)
+        events = EventEngineV3.get_entity_chain(db, entity_id, tenant_id)
         
         for i, event in enumerate(events):
             # Recompute hash

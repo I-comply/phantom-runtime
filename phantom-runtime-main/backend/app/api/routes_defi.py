@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from app.core.database import get_db
 from app.core.defi_manager import DeFiEventManager, AsyncPipeline
+from app.core.deps import require_permission
 from datetime import datetime
 
 router = APIRouter(prefix="/api/defi", tags=["defi"])
@@ -30,7 +31,11 @@ class DeFiEventResponse(BaseModel):
         from_attributes = True
 
 @router.post("/events", response_model=DeFiEventResponse)
-def create_defi_event(event: DeFiEventCreate, db: Session = Depends(get_db)):
+def create_defi_event(
+    event: DeFiEventCreate,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("defi", "write")),
+):
     """Create a DeFi event (deposit, withdraw, trade, etc.)"""
     try:
         defi_event = DeFiEventManager.create_defi_event(
@@ -48,7 +53,11 @@ def create_defi_event(event: DeFiEventCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/portfolio/{entity_id}")
-def get_portfolio(entity_id: str, db: Session = Depends(get_db)):
+def get_portfolio(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("defi", "read")),
+):
     """Get portfolio summary for an entity"""
     portfolio = DeFiEventManager.get_entity_portfolio(db, entity_id)
     return portfolio

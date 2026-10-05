@@ -37,3 +37,11 @@ def require_permission(resource: str, action: str):
         return api_key_obj
 
     return _check
+
+
+def is_admin(api_key_obj: APIKey, db: Session) -> bool:
+    """True if this key's role is 'admin' (sees across tenants on read endpoints
+    that otherwise scope to the caller's own tenant_id)."""
+    from app.core.models_v3 import Role
+    role = db.query(Role).filter(Role.id == api_key_obj.role_id).first()
+    return bool(role and role.name == "admin")

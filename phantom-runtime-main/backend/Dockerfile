@@ -1,5 +1,11 @@
 FROM python:3.11-slim
 
+# Deliberately root: app/core/sandbox.py's subprocess driver drops privilege to
+# an unprivileged uid (65534) for each plugin/strategy execution, which needs
+# CAP_SETUID — i.e. needs this process to start as root. Do not add a USER
+# directive here without also granting that capability some other way, or the
+# sandbox will fail closed (see sandbox.py's PermissionError handling) rather
+# than silently execute code as the app's own user.
 WORKDIR /app
 
 COPY requirements.txt .
