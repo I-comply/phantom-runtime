@@ -126,8 +126,57 @@ Response:
 ### Backend (.env)
 ```
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/phantomos
-CORS_ORIGINS=*
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+# One-time: set this to mint the first admin API key (POST /api/v3/security/api-keys
+# with header X-Bootstrap-Key), then unset it. Every other write/execute endpoint
+# requires a real API key (X-API-Key) with the matching RBAC permission.
+PHANTOM_BOOTSTRAP_ADMIN_KEY=
 ```
+`CORS_ORIGINS` must be an explicit origin list, not `*` — the app refuses to start
+with a wildcard because `allow_credentials=True` is already set and the two
+together are a known CORS misconfiguration (and this API has no cookie-based auth
+for credentialed CORS to protect in the first place).
+
+## Auth
+
+Every write/execute endpoint and every read that exposes another tenant's data
+requires an `X-API-Key` header, checked against RBAC roles (`admin`, `agent`,
+`viewer`, `system`) defined in `backend/app/core/security.py`. Mint the first
+key with `PHANTOM_BOOTSTRAP_ADMIN_KEY` set and `X-Bootstrap-Key` on the request
+(`POST /api/v3/security/api-keys`); unset the env var afterwards. v3 reads
+(`/api/v3/events/chain/*`, `/api/v3/events/verify/*`) are scoped to the caller's
+own tenant unless the key's role is `admin`. v1/v2 endpoints (`/api/events`,
+`/api/state`, `/api/snapshots`, `/api/defi`) require a key but — because those
+tables have no `tenant_id` column — cannot be scoped per-tenant without a schema
+migration; prefer the v3 endpoints where tenant isolation matters.
+
+## Plugin / strategy code execution
+
+`POST /api/plugins/` and `POST /api/v3/strategies` accept a Python `code` string,
+later run via `exec()` — treat `plugins:write`/`strategies:write` as equivalent to
+granting code execution, not a data write. That code runs in an isolated
+subprocess (`backend/app/core/sandbox.py`), never in the API process:
+- **`SANDBOX_EXECUTOR=subprocess`** (default): a separate OS process, dropped to
+  an unprivileged user (uid/gid 65534), with CPU/memory/file-size/process-count
+  rlimits. This blocks the API process's own memory, env vars (no DB credentials
+  reach the sandboxed code), and DB session from being reachable, and blocks
+  fork/exec (tested: a classic restricted-`exec()` escape that reaches the `os`
+  module can no longer spawn a shell once unprivileged + `RLIMIT_NPROC=0`). It
+  does **not** block outbound network from sandboxed code.
+- **`SANDBOX_EXECUTOR=docker`**: one throwaway `--network none --read-only
+  --cap-drop ALL` container per call (same pattern as
+  `agent-trust-layer/atl/executor.py` in this repo) — also closes the network
+  gap. Needs direct Docker daemon access on the host running the backend.
+  **Never** grant this by mounting `/var/run/docker.sock` into the backend's own
+  container — that trades a sandbox escape for host-root access, which is worse.
+  Only enable it when the backend runs outside a container, or has its own
+  unshared daemon.
+
+Restricting `__builtins__` inside the sandbox is defense in depth, not a
+boundary by itself — it's a well-documented pattern to escape (no blocked
+builtin is needed; `().__class__.__bases__[0].__subclasses__()` plus a bare
+`except:` reaches arbitrary already-imported modules). The isolation above is
+what actually bounds the damage once that escape is used.
 
 ### Frontend (.env)
 ```

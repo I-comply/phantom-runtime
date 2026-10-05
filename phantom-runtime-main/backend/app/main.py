@@ -25,10 +25,20 @@ app = FastAPI(
     description="Premium event-sourcing platform with hash-chained events, async pipeline, and strategy execution"
 )
 
-# CORS
+# CORS. This API has no cookie/session-based auth (auth is the X-API-Key header,
+# which browsers never send automatically cross-origin), so allow_credentials
+# buys nothing and combining it with a wildcard origin is a pure foot-gun —
+# refuse to start that way rather than silently accept requests from any origin.
+_cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(',') if o.strip()]
+if "*" in _cors_origins:
+    raise RuntimeError(
+        "CORS_ORIGINS=\"*\" is not supported with allow_credentials=True "
+        "(browsers reject it, and it signals trust-any-origin). "
+        "Set CORS_ORIGINS to an explicit comma-separated origin list."
+    )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS.split(','),
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

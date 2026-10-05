@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.core.database import get_db
 from app.core.event_store import EventStore
 from app.core.snapshot_manager import SnapshotManager
 from app.core.reconstructor_v2 import StateReconstructorV2
+from app.core.deps import require_permission
 
 router = APIRouter(prefix="/api/state", tags=["state"])
 
@@ -15,7 +16,7 @@ class StateResponse(BaseModel):
     event_count: int
     runtime_status: str
     snapshot_used: bool = False
-    snapshot_number: int = None
+    snapshot_number: Optional[int] = None
 
 class AgentRunRequest(BaseModel):
     entity_id: str
@@ -27,7 +28,11 @@ class AgentRunResponse(BaseModel):
     status: str
 
 @router.get("/{entity_id}", response_model=StateResponse)
-def get_entity_state(entity_id: str, db: Session = Depends(get_db)):
+def get_entity_state(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("events", "read")),
+):
     """Reconstruct entity state using snapshot optimization"""
     events = EventStore.get_events(db=db, entity_id=entity_id)
     
@@ -62,13 +67,20 @@ def get_entity_state(entity_id: str, db: Session = Depends(get_db)):
     )
 
 @router.get("/", response_model=List[str])
-def get_all_entities(db: Session = Depends(get_db)):
+def get_all_entities(
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("events", "read")),
+):
     """Get list of all entity IDs"""
     entity_ids = EventStore.get_all_entity_ids(db=db)
     return entity_ids
 
 @router.post("/agent/run", response_model=AgentRunResponse)
-def agent_run(request: AgentRunRequest, db: Session = Depends(get_db)):
+def agent_run(
+    request: AgentRunRequest,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("events", "write")),
+):
     """Execute ephemeral agent operation and write result as event"""
     events = EventStore.get_events(db=db, entity_id=request.entity_id)
     

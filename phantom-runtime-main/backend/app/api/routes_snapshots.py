@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 from app.core.database import get_db
 from app.core.snapshot_manager import SnapshotManager
+from app.core.deps import require_permission
 from datetime import datetime
 
 router = APIRouter(prefix="/api/snapshots", tags=["snapshots"])
@@ -24,7 +25,11 @@ class SnapshotCreateRequest(BaseModel):
     workspace_id: Optional[str] = None
 
 @router.post("/", response_model=SnapshotResponse)
-def create_snapshot(request: SnapshotCreateRequest, db: Session = Depends(get_db)):
+def create_snapshot(
+    request: SnapshotCreateRequest,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("snapshots", "write")),
+):
     """Manually create a snapshot for an entity"""
     snapshot = SnapshotManager.create_snapshot(
         db=db,
@@ -38,7 +43,11 @@ def create_snapshot(request: SnapshotCreateRequest, db: Session = Depends(get_db
     return snapshot
 
 @router.get("/entity/{entity_id}/latest", response_model=SnapshotResponse)
-def get_latest_snapshot(entity_id: str, db: Session = Depends(get_db)):
+def get_latest_snapshot(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("snapshots", "read")),
+):
     """Get latest snapshot for an entity"""
     snapshot = SnapshotManager.get_latest_snapshot(db, entity_id)
     
@@ -48,7 +57,11 @@ def get_latest_snapshot(entity_id: str, db: Session = Depends(get_db)):
     return snapshot
 
 @router.get("/entity/{entity_id}/state")
-def get_state_with_snapshot(entity_id: str, db: Session = Depends(get_db)):
+def get_state_with_snapshot(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("snapshots", "read")),
+):
     """Get reconstructed state using snapshot optimization"""
     try:
         state = SnapshotManager.reconstruct_with_snapshot(db, entity_id)
@@ -64,7 +77,12 @@ def get_state_with_snapshot(entity_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/entity/{entity_id}/cleanup")
-def cleanup_old_snapshots(entity_id: str, keep_count: int = 5, db: Session = Depends(get_db)):
+def cleanup_old_snapshots(
+    entity_id: str,
+    keep_count: int = 5,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("snapshots", "write")),
+):
     """Clean up old snapshots, keeping only N most recent"""
     SnapshotManager.cleanup_old_snapshots(db, entity_id, keep_count)
     return {"status": "cleaned", "entity_id": entity_id, "kept": keep_count}

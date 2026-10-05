@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.core.models_v3 import Strategy, StrategyExecution, EventV3
 from app.core.event_engine_v3 import EventEngineV3
+from app.core.sandbox import run_sandboxed
 from typing import Dict, Any, List
 from datetime import datetime, timezone
 import logging
@@ -178,32 +179,8 @@ for asset, amount in balances.items():
     
     @staticmethod
     def _execute_code(code: str, events: List[Dict], state: Dict, config: Dict) -> Dict[str, Any]:
-        """Execute strategy code in sandboxed environment"""
-        safe_globals = {
-            '__builtins__': {
-                'len': len,
-                'str': str,
-                'int': int,
-                'float': float,
-                'dict': dict,
-                'list': list,
-                'sum': sum,
-                'max': max,
-                'min': min,
-                'abs': abs,
-                'round': round,
-            }
-        }
-        
-        safe_locals = {
-            'events': events,
-            'state': state.copy(),
-            'config': config,
-        }
-        
-        exec(code, safe_globals, safe_locals)
-        
-        if 'result' not in safe_locals:
-            raise ValueError("Strategy must define 'result' variable")
-        
-        return safe_locals['result']
+        """Execute strategy code in an isolated subprocess (see core/sandbox.py)."""
+        out = run_sandboxed(code, {'events': events, 'state': state.copy(), 'config': config})
+        if not out["ok"]:
+            raise ValueError(out["error"])
+        return out["result"]
