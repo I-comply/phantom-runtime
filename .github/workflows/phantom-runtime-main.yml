@@ -38,9 +38,13 @@ jobs:
       - name: Pull pinned sandbox image (docker executor)
         if: matrix.sandbox_executor == 'docker'
         run: docker pull "$(python3 -c 'from app.core.sandbox import DEFAULT_IMAGE as i; print(i)')"
-      - run: python3 -m pytest tests/ -v
-        env:
-          SANDBOX_EXECUTOR: ${{ matrix.sandbox_executor }}
+      # The sandbox drops privilege to an unprivileged uid for each plugin/strategy
+      # run (see core/sandbox.py), which needs root to setuid — the same reason
+      # the Dockerfile runs the app as root in production. The bare GH Actions
+      # runner executes steps as a non-root user, so run this step under sudo
+      # (passwordless by default on GH-hosted runners) to match that real
+      # codepath instead of silently testing a weaker, never-deployed one.
+      - run: sudo env "PATH=$PATH" "DATABASE_URL=$DATABASE_URL" "PHANTOM_BOOTSTRAP_ADMIN_KEY=$PHANTOM_BOOTSTRAP_ADMIN_KEY" "SANDBOX_EXECUTOR=${{ matrix.sandbox_executor }}" python3 -m pytest tests/ -v
   security:
     runs-on: ubuntu-latest
     steps:
