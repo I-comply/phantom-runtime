@@ -63,7 +63,7 @@ def run(code: str, local_vars: dict) -> dict:
     # own import, never anything the caller controls, so it's safe to hand to the code.
     safe_globals = {'__builtins__': dict(SAFE_BUILTINS), 'json': json}
     safe_locals = dict(local_vars)
-    exec(code, safe_globals, safe_locals)  # noqa: S102 - isolated subprocess; see module docstring
+    exec(code, safe_globals, safe_locals)  # nosec B102 - isolated subprocess; see module docstring
     if 'result' not in safe_locals:
         raise ValueError("code must define a 'result' variable")
     return safe_locals['result']

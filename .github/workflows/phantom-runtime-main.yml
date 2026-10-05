@@ -1,0 +1,73 @@
+name: phantom-runtime-main
+on:
+  push:
+    paths: ["phantom-runtime-main/**", ".github/workflows/phantom-runtime-main.yml"]
+  pull_request:
+    paths: ["phantom-runtime-main/**", ".github/workflows/phantom-runtime-main.yml"]
+defaults:
+  run:
+    working-directory: phantom-runtime-main/backend
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: phantomos
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/phantomos
+      PHANTOM_BOOTSTRAP_ADMIN_KEY: ci-test-bootstrap-key
+    strategy:
+      matrix:
+        sandbox_executor: [subprocess, docker]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r requirements.txt pytest httpx2
+      - name: Pull pinned sandbox image (docker executor)
+        if: matrix.sandbox_executor == 'docker'
+        run: docker pull "$(python3 -c 'from app.core.sandbox import DEFAULT_IMAGE as i; print(i)')"
+      # The sandbox drops privilege to an unprivileged uid for each plugin/strategy
+      # run (see core/sandbox.py), which needs root to setuid — the same reason
+      # the Dockerfile runs the app as root in production. The bare GH Actions
+      # runner executes steps as a non-root user, so run this step under sudo
+      # (passwordless by default on GH-hosted runners) to match that real
+      # codepath instead of silently testing a weaker, never-deployed one.
+      #
+      # actions/checkout lays out the repo under a path the dropped-privilege
+      # uid (65534) can't traverse even after chmod -R o+rX on the whole tree
+      # (tried, still 403'd) — sandbox.py sidesteps this by copying the worker
+      # script into /tmp (world-traversable) before running it, so no CI-side
+      # permission workaround is needed here.
+      - run: sudo env "PATH=$PATH" "DATABASE_URL=$DATABASE_URL" "PHANTOM_BOOTSTRAP_ADMIN_KEY=$PHANTOM_BOOTSTRAP_ADMIN_KEY" "SANDBOX_EXECUTOR=${{ matrix.sandbox_executor }}" python3 -m pytest tests/ -v
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install bandit pip-audit
+      - run: bandit -r app -ll
+      - run: pip-audit -r requirements.txt
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: phantom-runtime-main/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm install
+      - run: npm run build

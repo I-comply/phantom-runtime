@@ -17,14 +17,36 @@ plain-subprocess fallback wherever Docker is available; see
 agent-trust-layer/atl/executor.py in this repo for that reference implementation."""
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 from pathlib import Path
 
-WORKER = Path(__file__).with_name("sandbox_worker.py")
+_SOURCE_WORKER = Path(__file__).with_name("sandbox_worker.py")
 DEFAULT_TIMEOUT_S = 5
+
+
+def _world_readable_worker_copy(src: Path) -> Path:
+    """The subprocess driver drops to an unprivileged uid to open this file —
+    it must be world-readable AND every directory above it world-traversable,
+    which the app's own deploy/checkout location can't be relied on for (seen
+    in the wild: GH Actions' checkout tree still 403s uid 65534 even after
+    explicitly chmod'ing it recursively, and a restrictive-umask container
+    build is the same failure mode in production). Sidestep the question
+    entirely: copy the worker into the world-traversable, sticky-bit tmp dir
+    (mode 1777 by POSIX convention) once at import, with explicit 644 perms,
+    and run from there instead of from wherever this package happens to live."""
+    dst = Path(tempfile.gettempdir()) / f"phantom_sandbox_worker_{src.stat().st_mtime_ns}.py"
+    if not dst.exists():
+        shutil.copy2(src, dst)
+    os.chmod(dst, 0o644)
+    return dst
+
+
+WORKER = _world_readable_worker_copy(_SOURCE_WORKER)
 # 65534 is the conventional "nobody" uid/gid on Linux containers; overridable
 # for environments where nobody is mapped differently.
 SANDBOX_UID = int(os.environ.get("SANDBOX_UID", "65534"))
@@ -34,13 +56,14 @@ SANDBOX_GID = int(os.environ.get("SANDBOX_GID", "65534"))
 DEFAULT_IMAGE = "python@sha256:02108f5d322dd89f1c9e552442c25acb0543dfdbc455693a5599624f20d9155d"
 
 
-def _parse_worker_output(stdout: bytes, stderr: bytes) -> dict:
+def _parse_worker_output(stdout: bytes, stderr: bytes, returncode: int = None) -> dict:
+    detail = f" (rc={returncode}, stderr={stderr.decode()[:300]!r})" if stderr or returncode else ""
     try:
         out = json.loads(stdout.decode() or "{}")
     except ValueError:
-        out = {"ok": False, "error": f"bad_worker_output: {stderr.decode()[:300]}"}
+        return {"ok": False, "error": f"bad_worker_output: not valid JSON{detail}"}
     if not isinstance(out, dict) or "ok" not in out:
-        out = {"ok": False, "error": "bad_worker_output"}
+        return {"ok": False, "error": f"bad_worker_output: missing 'ok'{detail}"}
     return out
 
 
@@ -68,7 +91,7 @@ def _run_subprocess(payload: bytes, timeout: float) -> dict:
         # Can't drop privilege to SANDBOX_UID/GID (not running as root / missing
         # CAP_SETUID). Fail closed rather than silently run as the app's own user.
         return {"ok": False, "error": f"sandbox cannot drop privileges: {e}"}
-    return _parse_worker_output(proc.stdout, proc.stderr)
+    return _parse_worker_output(proc.stdout, proc.stderr, proc.returncode)
 
 
 def _run_docker(payload: bytes, timeout: float) -> dict:
@@ -85,7 +108,7 @@ def _run_docker(payload: bytes, timeout: float) -> dict:
         "--security-opt", "no-new-privileges", "--pids-limit", "32",
         "--memory", "128m", "--memory-swap", "128m", "--cpus", "1",
         "--user", f"{SANDBOX_UID}:{SANDBOX_GID}",
-        "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=8m",
+        "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=8m",  # nosec B108
         "-v", f"{WORKER}:/sandbox/sandbox_worker.py:ro",
         "-w", "/sandbox", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "HOME=/tmp",
         image, "python", "-I", "sandbox_worker.py",
@@ -97,7 +120,7 @@ def _run_docker(payload: bytes, timeout: float) -> dict:
         return {"ok": False, "error": "timeout"}
     except FileNotFoundError as e:
         return {"ok": False, "error": f"docker unavailable: {e}"}
-    return _parse_worker_output(proc.stdout, proc.stderr)
+    return _parse_worker_output(proc.stdout, proc.stderr, proc.returncode)
 
 
 def run_sandboxed(code: str, local_vars: dict, timeout: float = DEFAULT_TIMEOUT_S) -> dict:
