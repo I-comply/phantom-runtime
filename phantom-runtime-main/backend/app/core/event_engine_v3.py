@@ -10,7 +10,8 @@ import json
 logger = logging.getLogger(__name__)
 
 class EventEngineV3:
-    """Hardened event engine with chaining and async pipeline"""
+    """Event chaining (corruption/reordering detection, not tamper-evident —
+    see EventV3's docstring) and an async ingestion pipeline."""
     
     @staticmethod
     def create_event(
@@ -81,7 +82,10 @@ class EventEngineV3:
 
     @staticmethod
     def verify_chain_integrity(db: Session, entity_id: str, tenant_id: Optional[str] = None) -> bool:
-        """Verify hash chain integrity"""
+        """Recompute and check the unkeyed chain hash — detects corruption or
+        reordering, not forgery by anyone with write access to events_v3
+        (that hash is recomputable from public fields alone). Does not check
+        hmac_signature/nonce; neither column is verified anywhere yet."""
         events = EventEngineV3.get_entity_chain(db, entity_id, tenant_id)
         
         for i, event in enumerate(events):
