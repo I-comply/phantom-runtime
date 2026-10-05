@@ -25,6 +25,17 @@ from pathlib import Path
 
 WORKER = Path(__file__).with_name("sandbox_worker.py")
 DEFAULT_TIMEOUT_S = 5
+
+# The subprocess driver drops to an unprivileged uid to run this file — it must
+# be world-readable regardless of how restrictive the deploying environment's
+# umask was when the checkout/build landed on disk (seen in the wild: CI
+# checkouts and some container builds leave it 640/600, which silently 403s
+# the dropped-privilege read instead of the app's own, privileged one). This
+# runs once at import; it's a best-effort self-heal, not a security control.
+try:
+    os.chmod(WORKER, 0o644)
+except OSError:
+    pass
 # 65534 is the conventional "nobody" uid/gid on Linux containers; overridable
 # for environments where nobody is mapped differently.
 SANDBOX_UID = int(os.environ.get("SANDBOX_UID", "65534"))
