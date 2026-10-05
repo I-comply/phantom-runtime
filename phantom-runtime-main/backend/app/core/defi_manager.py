@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.core.models import Event
 from app.core.models_v2 import DeFiEvent, AsyncJob
+from app.core.event_store import EventStore
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 import uuid
@@ -46,8 +47,13 @@ class DeFiEventManager:
             payload=payload
         )
         db.add(core_event)
+        # This bypasses EventStore.append_event (needs the flushed core_event.id
+        # below before DeFiEvent can be created), so claim the entity->workspace
+        # link here too — otherwise a DeFi-only entity_id never gets linked and
+        # the v1 event/state/snapshot endpoints 404 it even for its own creator.
+        EventStore.claim_entity(db, entity_id, workspace_id)
         db.flush()  # Get ID without committing
-        
+
         # Create DeFi event
         defi_event = DeFiEvent(
             workspace_id=workspace_id,
@@ -67,11 +73,14 @@ class DeFiEventManager:
         return defi_event
     
     @staticmethod
-    def get_entity_portfolio(db: Session, entity_id: str) -> Dict[str, Any]:
-        """Get portfolio summary for an entity"""
-        defi_events = db.query(DeFiEvent).filter(
-            DeFiEvent.entity_id == entity_id
-        ).order_by(DeFiEvent.created_at.asc()).all()
+    def get_entity_portfolio(db: Session, entity_id: str, workspace_id: Optional[str] = None) -> Dict[str, Any]:
+        """Get portfolio summary for an entity. workspace_id=None means unscoped
+        (admin/internal callers only); route handlers must pass the caller's own
+        workspace_id for non-admin keys."""
+        q = db.query(DeFiEvent).filter(DeFiEvent.entity_id == entity_id)
+        if workspace_id is not None:
+            q = q.filter(DeFiEvent.workspace_id == workspace_id)
+        defi_events = q.order_by(DeFiEvent.created_at.asc()).all()
         
         balances = {}
         transactions = []

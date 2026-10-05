@@ -143,12 +143,25 @@ Every write/execute endpoint and every read that exposes another tenant's data
 requires an `X-API-Key` header, checked against RBAC roles (`admin`, `agent`,
 `viewer`, `system`) defined in `backend/app/core/security.py`. Mint the first
 key with `PHANTOM_BOOTSTRAP_ADMIN_KEY` set and `X-Bootstrap-Key` on the request
-(`POST /api/v3/security/api-keys`); unset the env var afterwards. v3 reads
-(`/api/v3/events/chain/*`, `/api/v3/events/verify/*`) are scoped to the caller's
-own tenant unless the key's role is `admin`. v1/v2 endpoints (`/api/events`,
-`/api/state`, `/api/snapshots`, `/api/defi`) require a key but — because those
-tables have no `tenant_id` column — cannot be scoped per-tenant without a schema
-migration; prefer the v3 endpoints where tenant isolation matters.
+(`POST /api/v3/security/api-keys`); unset the env var afterwards.
+
+**Tenant isolation on reads.** v3 (`/api/v3/events/chain/*`, `/api/v3/events/verify/*`)
+is scoped to the caller's own `tenant_id` column; `admin`-role keys see across
+tenants. v1/v2 (`/api/events`, `/api/state`, `/api/snapshots`, `/api/defi`) have
+no `tenant_id` column of their own — rather than a schema migration, scoping
+reuses the `EntityWorkspace` table (`backend/app/core/models_v2.py`), which
+already mapped `entity_id -> workspace_id` but was previously only written by
+`POST /api/workspaces/me/entities` and never read by anything. Every v1/v2
+write path (`EventStore.append_event`, `DeFiEventManager.create_defi_event`)
+now claims that link the first time an entity is written (first writer wins —
+a tenant can never silently re-home an entity another tenant already claimed),
+and every v1/v2 read filters through it: an entity with no link for the
+caller's workspace 404s rather than returning data, including the "no snapshot
+yet" fallback path that would otherwise replay another tenant's full v1 event
+history. `Snapshot` and `DeFiEvent` already had their own `workspace_id`
+column (same story — present, just never filtered on); creation now stamps it
+from the caller's key rather than trusting a client-supplied value in the
+request body.
 
 ## Plugin / strategy code execution
 

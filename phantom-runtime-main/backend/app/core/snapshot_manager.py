@@ -79,17 +79,21 @@ class SnapshotManager:
             return None
     
     @staticmethod
-    def get_latest_snapshot(db: Session, entity_id: str) -> Optional[Snapshot]:
-        """Get the most recent snapshot for an entity"""
-        return db.query(Snapshot).filter(
-            Snapshot.entity_id == entity_id
-        ).order_by(Snapshot.snapshot_number.desc()).first()
+    def get_latest_snapshot(db: Session, entity_id: str, workspace_id: Optional[str] = None) -> Optional[Snapshot]:
+        """Get the most recent snapshot for an entity. workspace_id=None means
+        unscoped (admin/internal callers only); route handlers must pass the
+        caller's own workspace_id for non-admin keys. A snapshot created before
+        workspaces existed (workspace_id NULL) is only visible unscoped."""
+        q = db.query(Snapshot).filter(Snapshot.entity_id == entity_id)
+        if workspace_id is not None:
+            q = q.filter(Snapshot.workspace_id == workspace_id)
+        return q.order_by(Snapshot.snapshot_number.desc()).first()
     
     @staticmethod
-    def reconstruct_with_snapshot(db: Session, entity_id: str) -> Dict[str, Any]:
+    def reconstruct_with_snapshot(db: Session, entity_id: str, workspace_id: Optional[str] = None) -> Dict[str, Any]:
         """Reconstruct state using snapshot + incremental events"""
         # Get latest snapshot
-        snapshot = SnapshotManager.get_latest_snapshot(db, entity_id)
+        snapshot = SnapshotManager.get_latest_snapshot(db, entity_id, workspace_id)
         
         if not snapshot:
             # No snapshot, reconstruct from all events
@@ -115,11 +119,14 @@ class SnapshotManager:
         return state
     
     @staticmethod
-    def cleanup_old_snapshots(db: Session, entity_id: str, keep_count: int = 5):
-        """Keep only N most recent snapshots"""
-        snapshots = db.query(Snapshot).filter(
-            Snapshot.entity_id == entity_id
-        ).order_by(Snapshot.snapshot_number.desc()).all()
+    def cleanup_old_snapshots(db: Session, entity_id: str, keep_count: int = 5, workspace_id: Optional[str] = None):
+        """Keep only N most recent snapshots. workspace_id=None means unscoped
+        (admin/internal callers only) — a non-admin caller must only ever be able
+        to delete snapshots belonging to their own workspace."""
+        q = db.query(Snapshot).filter(Snapshot.entity_id == entity_id)
+        if workspace_id is not None:
+            q = q.filter(Snapshot.workspace_id == workspace_id)
+        snapshots = q.order_by(Snapshot.snapshot_number.desc()).all()
         
         if len(snapshots) > keep_count:
             to_delete = snapshots[keep_count:]
