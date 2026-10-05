@@ -1,0 +1,5 @@
+{
+  "name": "i-comply-ops",
+  "version": "1.0.0",
+  "description": "Skills for auditing and remediating a GitHub org from Claude Code Remote sessions: repo onboarding, cost reporting, session handoff, secret scanning, PR watch recovery, git/GitHub gotchas."
+}
