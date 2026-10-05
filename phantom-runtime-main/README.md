@@ -126,8 +126,16 @@ Response:
 ### Backend (.env)
 ```
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/phantomos
-CORS_ORIGINS=*
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+# One-time: set this to mint the first admin API key (POST /api/v3/security/api-keys
+# with header X-Bootstrap-Key), then unset it. Every other write/execute endpoint
+# requires a real API key (X-API-Key) with the matching RBAC permission.
+PHANTOM_BOOTSTRAP_ADMIN_KEY=
 ```
+`CORS_ORIGINS` must be an explicit origin list, not `*` — the app refuses to start
+with a wildcard because `allow_credentials=True` is already set and the two
+together are a known CORS misconfiguration (and this API has no cookie-based auth
+for credentialed CORS to protect in the first place).
 
 ### Frontend (.env)
 ```

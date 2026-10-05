@@ -29,7 +29,8 @@ services:
       - "8001:8001"
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-phantom_secure_pass}@postgres:5432/phantomos
-      CORS_ORIGINS: "*"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      PHANTOM_BOOTSTRAP_ADMIN_KEY: ${PHANTOM_BOOTSTRAP_ADMIN_KEY:?set PHANTOM_BOOTSTRAP_ADMIN_KEY to mint the first admin API key, then unset it}
     depends_on:
       postgres:
         condition: service_healthy

@@ -6,6 +6,9 @@ from app.core.database import get_db
 from app.core.event_engine_v3 import EventEngineV3, AsyncEventPipeline
 from app.core.strategy_engine import StrategyEngine
 from app.core.security import SecurityManager, RBACMiddleware
+from app.core.deps import require_permission, require_api_key
+from app.core.config import settings
+from app.core.models_v3 import APIKey
 from datetime import datetime
 
 router = APIRouter(prefix="/api/v3", tags=["v3"])
@@ -128,27 +131,22 @@ class StrategyCreate(BaseModel):
 @router.post("/strategies")
 def create_strategy(
     strategy: StrategyCreate,
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key_obj: APIKey = Depends(require_permission("strategies", "write")),
 ):
-    """Create new strategy"""
-    
-    tenant_id = None
-    if x_api_key:
-        api_key_obj = SecurityManager.verify_api_key(db, x_api_key)
-        if api_key_obj:
-            RBACMiddleware.require_permission(api_key_obj, db, 'strategies', 'write')
-            tenant_id = str(api_key_obj.tenant_id)
-    
+    """Create new strategy. Requires an API key with strategies:write.
+    `code` is later exec()'d (see StrategyEngine._execute_code) — treat
+    strategies:write as granting arbitrary code execution, not a data-write."""
+
     created_strategy = StrategyEngine.create_strategy(
         db=db,
         name=strategy.name,
         strategy_type=strategy.strategy_type,
         code=strategy.code,
         config=strategy.config,
-        tenant_id=tenant_id
+        tenant_id=str(api_key_obj.tenant_id)
     )
-    
+
     return {
         "id": str(created_strategy.id),
         "name": created_strategy.name,
@@ -160,9 +158,10 @@ def execute_strategy(
     strategy_id: str,
     entity_id: str,
     emit_events: bool = True,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _auth: APIKey = Depends(require_permission("strategies", "execute")),
 ):
-    """Execute strategy on entity"""
+    """Execute strategy on entity. Requires an API key with strategies:execute."""
     execution = StrategyEngine.execute_strategy(
         db=db,
         strategy_id=strategy_id,
@@ -198,9 +197,28 @@ class APIKeyCreate(BaseModel):
 @router.post("/security/api-keys")
 def create_api_key(
     request: APIKeyCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+    x_bootstrap_key: Optional[str] = Header(None, alias="X-Bootstrap-Key"),
 ):
-    """Create new API key"""
+    """Create new API key.
+
+    Gated by EITHER an existing API key with api_keys:write, OR the one-time
+    PHANTOM_BOOTSTRAP_ADMIN_KEY env var (for minting the very first admin key
+    on a fresh deployment, when no API key exists yet to authenticate with).
+    Unset PHANTOM_BOOTSTRAP_ADMIN_KEY once you have a real admin key."""
+    import hmac as _hmac
+
+    authorized = False
+    if x_bootstrap_key and settings.BOOTSTRAP_ADMIN_KEY:
+        authorized = _hmac.compare_digest(x_bootstrap_key, settings.BOOTSTRAP_ADMIN_KEY)
+    if not authorized and x_api_key:
+        api_key_obj = SecurityManager.verify_api_key(db, x_api_key)
+        if api_key_obj and RBACMiddleware.check_permission(api_key_obj, db, "api_keys", "write"):
+            authorized = True
+    if not authorized:
+        raise HTTPException(status_code=401, detail="requires an API key with api_keys:write, or X-Bootstrap-Key")
+
     api_key, plaintext_key = SecurityManager.create_api_key(
         db=db,
         tenant_id=request.tenant_id,

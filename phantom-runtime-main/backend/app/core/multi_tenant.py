@@ -1,35 +1,42 @@
 from sqlalchemy.orm import Session
 from app.core.models_v2 import Workspace, EntityWorkspace
-from typing import Optional
+from typing import Optional, Tuple
+import hashlib
 import secrets
 import string
 
 class MultiTenantManager:
     @staticmethod
     def generate_api_key() -> str:
-        """Generate a secure API key"""
+        """Generate a secure API key (plaintext, shown to the caller once)"""
         alphabet = string.ascii_letters + string.digits
         return 'pk_' + ''.join(secrets.choice(alphabet) for _ in range(32))
-    
+
     @staticmethod
-    def create_workspace(db: Session, name: str, settings: dict = None) -> Workspace:
-        """Create a new workspace"""
+    def hash_key(key: str) -> str:
+        """Hash a workspace API key for storage (same scheme as SecurityManager.hash_key)"""
+        return hashlib.sha256(key.encode()).hexdigest()
+
+    @staticmethod
+    def create_workspace(db: Session, name: str, settings: dict = None) -> Tuple[Workspace, str]:
+        """Create a new workspace. Returns (workspace, plaintext_api_key) — the plaintext
+        key is never stored and is only ever available from this return value."""
         api_key = MultiTenantManager.generate_api_key()
         workspace = Workspace(
             name=name,
-            api_key=api_key,
+            api_key=MultiTenantManager.hash_key(api_key),
             settings=settings or {}
         )
         db.add(workspace)
         db.commit()
         db.refresh(workspace)
-        return workspace
-    
+        return workspace, api_key
+
     @staticmethod
     def get_workspace_by_api_key(db: Session, api_key: str) -> Optional[Workspace]:
-        """Get workspace by API key"""
+        """Get workspace by API key (compares against the stored hash)"""
         return db.query(Workspace).filter(
-            Workspace.api_key == api_key,
+            Workspace.api_key == MultiTenantManager.hash_key(api_key),
             Workspace.is_active == True
         ).first()
     

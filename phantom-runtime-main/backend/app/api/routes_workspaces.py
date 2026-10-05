@@ -16,26 +16,32 @@ class WorkspaceCreate(BaseModel):
 class WorkspaceResponse(BaseModel):
     id: str
     name: str
-    api_key: str
     settings: Dict[str, Any]
     created_at: datetime
     is_active: bool
-    
+
     class Config:
         from_attributes = True
+
+class WorkspaceCreateResponse(WorkspaceResponse):
+    api_key: str  # plaintext, only ever present in this one response
 
 class EntityLinkRequest(BaseModel):
     entity_id: str
 
-@router.post("/", response_model=WorkspaceResponse)
+@router.post("/", response_model=WorkspaceCreateResponse, status_code=201)
 def create_workspace(workspace: WorkspaceCreate, db: Session = Depends(get_db)):
-    """Create a new workspace"""
-    ws = MultiTenantManager.create_workspace(
+    """Create a new workspace. The API key is returned once, in plaintext, and
+    never stored or retrievable again — only its hash is kept server-side."""
+    ws, plaintext_key = MultiTenantManager.create_workspace(
         db=db,
         name=workspace.name,
         settings=workspace.settings
     )
-    return ws
+    return WorkspaceCreateResponse(
+        id=str(ws.id), name=ws.name, settings=ws.settings,
+        created_at=ws.created_at, is_active=ws.is_active, api_key=plaintext_key,
+    )
 
 @router.get("/me", response_model=WorkspaceResponse)
 def get_current_workspace(
@@ -46,7 +52,10 @@ def get_current_workspace(
     workspace = MultiTenantManager.get_workspace_by_api_key(db, x_api_key)
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found or inactive")
-    return workspace
+    return WorkspaceResponse(
+        id=str(workspace.id), name=workspace.name, settings=workspace.settings,
+        created_at=workspace.created_at, is_active=workspace.is_active,
+    )
 
 @router.post("/me/entities", status_code=201)
 def link_entity_to_workspace(

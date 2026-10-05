@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional, List
 from app.core.database import get_db
 from app.core.plugin_engine import PluginEngine
 from app.core.snapshot_manager import SnapshotManager
+from app.core.deps import require_permission
 from datetime import datetime
 import uuid
 
@@ -33,8 +34,14 @@ class PluginExecuteRequest(BaseModel):
     entity_id: str
 
 @router.post("/", response_model=PluginResponse)
-def create_plugin(plugin: PluginCreate, db: Session = Depends(get_db)):
-    """Create a new plugin"""
+def create_plugin(
+    plugin: PluginCreate,
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("plugins", "write")),
+):
+    """Create a new plugin. Requires an API key with plugins:write.
+    `code` is executed later via exec() (see PluginEngine._execute_code) — treat
+    plugins:write as equivalent to granting arbitrary code execution, not a data-write."""
     created_plugin = PluginEngine.create_plugin(
         db=db,
         name=plugin.name,
@@ -43,13 +50,18 @@ def create_plugin(plugin: PluginCreate, db: Session = Depends(get_db)):
         workspace_id=plugin.workspace_id,
         config=plugin.config
     )
-    return created_plugin
+    return PluginResponse(
+        id=str(created_plugin.id), name=created_plugin.name,
+        description=created_plugin.description, plugin_type=created_plugin.plugin_type,
+        is_active=created_plugin.is_active, created_at=created_plugin.created_at,
+    )
 
 @router.post("/{plugin_id}/execute")
 def execute_plugin(
     plugin_id: str,
     request: PluginExecuteRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _auth=Depends(require_permission("plugins", "execute")),
 ):
     """Execute a plugin on an entity"""
     try:

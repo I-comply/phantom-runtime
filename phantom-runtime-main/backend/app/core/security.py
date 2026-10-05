@@ -107,22 +107,26 @@ class SecurityManager:
             'admin': {
                 'events': ['read', 'write', 'delete'],
                 'strategies': ['read', 'write', 'execute', 'delete'],
+                'plugins': ['read', 'write', 'execute', 'delete'],
                 'workspaces': ['read', 'write', 'delete'],
                 'api_keys': ['read', 'write', 'delete']
             },
             'agent': {
                 'events': ['read', 'write'],
                 'strategies': ['read', 'execute'],
+                'plugins': ['read', 'execute'],
                 'workspaces': ['read']
             },
             'viewer': {
                 'events': ['read'],
                 'strategies': ['read'],
+                'plugins': ['read'],
                 'workspaces': ['read']
             },
             'system': {
                 'events': ['read', 'write'],
                 'strategies': ['execute'],
+                'plugins': ['execute'],
                 'workspaces': ['read']
             }
         }
