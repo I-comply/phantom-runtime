@@ -45,23 +45,11 @@ jobs:
       # (passwordless by default on GH-hosted runners) to match that real
       # codepath instead of silently testing a weaker, never-deployed one.
       #
-      # actions/checkout lays out the repo under a path owned by the runner
-      # user with no "other" read/traverse bits on some intermediate
-      # directories, so the dropped-privilege uid (65534, no group membership
-      # on this box) can't even open sandbox_worker.py. Grant world
-      # read+traverse on the checkout tree so the sandboxed subprocess can
-      # read its own worker script — sandbox.py does the same defensively at
-      # import time for production, but a repo checkout needs it done here too.
-      - run: |
-          sudo chmod -R o+rX "$GITHUB_WORKSPACE"
-          # Also grant traverse (x) on every ancestor directory up to $HOME —
-          # a non-traversable ancestor would 403 the dropped-privilege read
-          # even with the target file itself world-readable.
-          p="$GITHUB_WORKSPACE"
-          while [ "$p" != "$HOME" ] && [ "$p" != "/" ]; do
-            sudo chmod o+rX "$p"
-            p="$(dirname "$p")"
-          done
+      # actions/checkout lays out the repo under a path the dropped-privilege
+      # uid (65534) can't traverse even after chmod -R o+rX on the whole tree
+      # (tried, still 403'd) — sandbox.py sidesteps this by copying the worker
+      # script into /tmp (world-traversable) before running it, so no CI-side
+      # permission workaround is needed here.
       - run: sudo env "PATH=$PATH" "DATABASE_URL=$DATABASE_URL" "PHANTOM_BOOTSTRAP_ADMIN_KEY=$PHANTOM_BOOTSTRAP_ADMIN_KEY" "SANDBOX_EXECUTOR=${{ matrix.sandbox_executor }}" python3 -m pytest tests/ -v
   security:
     runs-on: ubuntu-latest

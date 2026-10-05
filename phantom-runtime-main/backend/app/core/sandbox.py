@@ -17,25 +17,36 @@ plain-subprocess fallback wherever Docker is available; see
 agent-trust-layer/atl/executor.py in this repo for that reference implementation."""
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 from pathlib import Path
 
-WORKER = Path(__file__).with_name("sandbox_worker.py")
+_SOURCE_WORKER = Path(__file__).with_name("sandbox_worker.py")
 DEFAULT_TIMEOUT_S = 5
 
-# The subprocess driver drops to an unprivileged uid to run this file — it must
-# be world-readable regardless of how restrictive the deploying environment's
-# umask was when the checkout/build landed on disk (seen in the wild: CI
-# checkouts and some container builds leave it 640/600, which silently 403s
-# the dropped-privilege read instead of the app's own, privileged one). This
-# runs once at import; it's a best-effort self-heal, not a security control.
-try:
-    os.chmod(WORKER, 0o644)
-except OSError:
-    pass
+
+def _world_readable_worker_copy(src: Path) -> Path:
+    """The subprocess driver drops to an unprivileged uid to open this file —
+    it must be world-readable AND every directory above it world-traversable,
+    which the app's own deploy/checkout location can't be relied on for (seen
+    in the wild: GH Actions' checkout tree still 403s uid 65534 even after
+    explicitly chmod'ing it recursively, and a restrictive-umask container
+    build is the same failure mode in production). Sidestep the question
+    entirely: copy the worker into the world-traversable, sticky-bit tmp dir
+    (mode 1777 by POSIX convention) once at import, with explicit 644 perms,
+    and run from there instead of from wherever this package happens to live."""
+    dst = Path(tempfile.gettempdir()) / f"phantom_sandbox_worker_{src.stat().st_mtime_ns}.py"
+    if not dst.exists():
+        shutil.copy2(src, dst)
+    os.chmod(dst, 0o644)
+    return dst
+
+
+WORKER = _world_readable_worker_copy(_SOURCE_WORKER)
 # 65534 is the conventional "nobody" uid/gid on Linux containers; overridable
 # for environments where nobody is mapped differently.
 SANDBOX_UID = int(os.environ.get("SANDBOX_UID", "65534"))
