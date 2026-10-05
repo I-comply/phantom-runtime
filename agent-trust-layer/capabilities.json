@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "tools": {
+    "echo":      {"risk": "low",         "params": {"text": {"type": "string", "max": 1000, "required": true}}},
+    "hash_text": {"risk": "low",         "params": {"text": {"type": "string", "max": 100000, "required": true}}},
+    "fs_read":   {"risk": "low",         "params": {"path": {"type": "string", "max": 200, "required": true}}},
+    "fs_write":  {"risk": "high",        "params": {"path": {"type": "string", "max": 200, "required": true},
+                                                    "content": {"type": "string", "max": 100000, "required": true}}},
+    "fs_delete": {"risk": "destructive", "params": {"path": {"type": "string", "max": 200, "required": true}}}
+  },
+  "grants": {
+    "*": ["echo", "hash_text", "fs_read"],
+    "writer": ["fs_write", "fs_delete"]
+  },
+  "limits": {"per_minute": 60, "approval_ttl_s": 900, "timeout_s": 10, "skew_s": 60}
+}
