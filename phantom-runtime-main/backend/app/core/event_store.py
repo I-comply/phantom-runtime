@@ -46,16 +46,30 @@ class EventStore:
             raise EntityOwnedElsewhere(entity_id)
 
     @staticmethod
+    def check_money_rules(db: Session, entity_id: str, event_type: str, payload: Dict[str, Any]) -> None:
+        """Raises money.AmountError if the event is not applicable to the entity's current state. Call
+        after lock_entity, so the state can't change before the event is written."""
+        from app.core import money
+        if event_type not in money.RULE_CHECKED:
+            return
+        from app.core.snapshot_manager import SnapshotManager
+        money.check_applicable(event_type, payload, SnapshotManager.reconstruct_with_snapshot(db, entity_id))
+
+    @staticmethod
     def append_event(
         db: Session,
         entity_id: str,
         event_type: str,
         payload: Dict[str, Any],
         workspace_id: Optional[str] = None,
+        validate_against_state: bool = False,
     ) -> Event:
-        """Append a new event to the store. See claim_entity for the workspace_id link."""
+        """Append a new event to the store. See claim_entity for the workspace_id link.
+        validate_against_state applies the money rules to the entity's current state under its lock."""
         EventStore.lock_entity(db, entity_id)
         EventStore.claim_entity(db, entity_id, workspace_id)  # first: a refused write adds nothing
+        if validate_against_state:
+            EventStore.check_money_rules(db, entity_id, event_type, payload)
         event = Event(
             entity_id=entity_id,
             event_type=event_type,

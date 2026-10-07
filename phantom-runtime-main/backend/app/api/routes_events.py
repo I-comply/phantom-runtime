@@ -45,13 +45,18 @@ def create_event(
         money.validate_money_payload(event.event_type, event.payload)
     except money.AmountError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    stored_event = EventStore.append_event(
-        db=db,
-        entity_id=event.entity_id,
-        event_type=event.event_type,
-        payload=event.payload,
-        workspace_id=str(api_key_obj.tenant_id),
-    )
+    try:
+        stored_event = EventStore.append_event(
+            db=db,
+            entity_id=event.entity_id,
+            event_type=event.event_type,
+            payload=event.payload,
+            workspace_id=str(api_key_obj.tenant_id),
+            validate_against_state=True,
+        )
+    except money.AmountError as e:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(e))
     return stored_event
 
 @router.get("/entity/{entity_id}", response_model=list[EventResponse])

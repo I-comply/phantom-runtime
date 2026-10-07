@@ -79,7 +79,12 @@ def sub(a: Decimal, b: Decimal) -> Decimal:
 
 
 MONEY_FIELDS = ("amount", "from_amount", "to_amount", "price")
-MONEY_EVENT_TYPES = frozenset({"deposit", "withdraw", "trade", "transfer", "stake", "unstake", "claim_rewards"})
+MONEY_EVENT_TYPES = frozenset({"deposit", "withdraw", "trade", "transfer", "stake", "unstake", "claim_rewards",
+                               "lock_stake", "release_stake"})
+# The legacy 'stake'/'unstake' events never moved balances and keep that meaning (and their old, lax
+# ingestion). lock_stake/release_stake move funds between balances and `staked`.
+RULE_CHECKED = MONEY_EVENT_TYPES - {"stake", "unstake"}
+OVERDRAFT_ENV = "PHANTOM_ALLOW_OVERDRAFT"
 
 
 def validate_money_payload(event_type: str, payload: dict) -> None:
@@ -92,3 +97,44 @@ def validate_money_payload(event_type: str, payload: dict) -> None:
                 parse_amount(payload[k])
             except AmountError as e:
                 raise AmountError(f"{k}: {e}")
+
+
+def _positive(payload: dict, field: str, *, required: bool) -> Decimal:
+    if field not in payload or payload[field] is None:
+        if required:
+            raise AmountError(f"{field} is required")
+        return Decimal(0)
+    d = parse_amount(payload[field])
+    if d <= 0:
+        raise AmountError(f"{field} must be greater than zero")
+    return d
+
+
+def check_applicable(event_type: str, payload: dict, state: dict) -> None:
+    """Ingestion rules, evaluated against the entity's current state while its lock is held:
+    amounts are positive, and nothing can be spent, traded, transferred or staked beyond the available
+    balance (or released beyond what is staked). Set PHANTOM_ALLOW_OVERDRAFT=1 to allow overdrafts.
+    Replay never calls this, so events written before these rules still replay."""
+    if event_type not in RULE_CHECKED:
+        return
+    import os
+    allow_overdraft = os.getenv(OVERDRAFT_ENV, "").lower() in ("1", "true", "yes")
+    balances = state.get("balances") if isinstance(state.get("balances"), dict) else {}
+    staked = state.get("staked") if isinstance(state.get("staked"), dict) else {}
+    asset = payload.get("asset", "USD")
+
+    def need(source: dict, key, amount: Decimal, what: str):
+        if not allow_overdraft and lenient(source.get(key, 0)) < amount:
+            raise AmountError(f"insufficient {what} {key}")
+
+    if event_type == "trade":
+        from_amount = _positive(payload, "from_amount", required=False)
+        _positive(payload, "to_amount", required=False)
+        if payload.get("from_asset") and from_amount:
+            need(balances, payload["from_asset"], from_amount, "balance")
+        return
+    amount = _positive(payload, "amount", required=True)
+    if event_type in ("withdraw", "transfer", "lock_stake"):
+        need(balances, asset, amount, "balance")
+    elif event_type == "release_stake":
+        need(staked, asset, amount, "staked")
