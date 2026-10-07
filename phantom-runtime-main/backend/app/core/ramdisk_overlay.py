@@ -24,7 +24,7 @@ _SRC_SHRED = Path(__file__).with_name("sandbox_shred.py")
 _SRC_WORKER = Path(__file__).with_name("sandbox_worker.py")
 
 # In-container paths that are writable, all RAM-backed.
-RAM_MOUNTS = ("/tmp", "/var/tmp", "/run", "/sandbox/work")
+RAM_MOUNTS = ("/tmp", "/var/tmp", "/run", "/sandbox/work") # nosec B108 - paths inside the container, not host temp files
 
 
 def enabled() -> bool:
