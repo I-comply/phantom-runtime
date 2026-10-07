@@ -1,4 +1,9 @@
 """
+NOTE: this file defines its own StateReconstructor, SnapshotManager and other classes below and
+imports nothing from the application (`app`). Its tests exercise those local models, not the
+production code, so they cannot detect production regressions. Tests that run against the real
+classes and a real database live in phantom-runtime-main/backend/tests/ (CI: phantom-runtime-main.yml).
+
 Phantom Runtime - Comprehensive Testing & Observability Suite
 Unit + Integration + Load Testing with Chaos Engineering
 

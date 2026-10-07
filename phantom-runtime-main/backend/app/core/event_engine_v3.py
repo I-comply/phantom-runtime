@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.core.models_v3 import EventV3, EventQueue
 from typing import Dict, Any, Optional, List
@@ -28,6 +29,10 @@ class EventEngineV3:
     ) -> EventV3:
         """Create a new event with hash chaining"""
         
+        # Serialize writers of this entity's chain until commit. Without it two writers read the same
+        # last block and both append block N+1 (a forked chain; verify_chain_integrity then fails).
+        db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": "events_v3:" + entity_id})
+
         # Get last event for this entity to chain
         last_event = db.query(EventV3).filter(
             EventV3.entity_id == entity_id
