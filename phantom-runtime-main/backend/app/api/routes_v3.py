@@ -95,9 +95,9 @@ def verify_chain_integrity(
 def queue_event(
     event: EventCreateV3,
     db: Session = Depends(get_db),
-    _auth: APIKey = Depends(require_permission("events", "write")),
+    api_key_obj: APIKey = Depends(require_permission("events", "write")),
 ):
-    """Add event to async queue"""
+    """Add event to async queue (the event will belong to the caller's workspace)"""
     queue_item = AsyncEventPipeline.queue_event(
         db=db,
         entity_id=event.entity_id,
@@ -106,7 +106,8 @@ def queue_event(
             "payload": event.payload,
             "source": event.source
         },
-        priority=event.priority
+        priority=event.priority,
+        tenant_id=str(api_key_obj.tenant_id)
     )
     return {
         "queue_id": str(queue_item.id),
@@ -117,14 +118,13 @@ def queue_event(
 def process_queue(
     batch_size: int = 100,
     db: Session = Depends(get_db),
-    # events:write for now; this is an operational/batch-admin action across the
-    # whole queue (not scoped to one tenant) — worth its own 'system:operate'
-    # permission if this app grows a real ops/admin surface distinct from
-    # per-tenant writes.
-    _auth: APIKey = Depends(require_permission("events", "write")),
+    api_key_obj: APIKey = Depends(require_permission("events", "write")),
 ):
-    """Process queued events (manual trigger)"""
-    count = AsyncEventPipeline.process_queue_batch(db, batch_size)
+    """Process queued events (manual trigger). A non-admin key processes only its own workspace's
+    items; admin keys process every tenant's (including legacy items queued without a tenant)."""
+    batch_size = max(1, min(batch_size, 1000))
+    count = AsyncEventPipeline.process_queue_batch(
+        db, batch_size, tenant_id=None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id))
     return {
         "processed_count": count
     }
@@ -168,15 +168,20 @@ def execute_strategy(
     entity_id: str,
     emit_events: bool = True,
     db: Session = Depends(get_db),
-    _auth: APIKey = Depends(require_permission("strategies", "execute")),
+    api_key_obj: APIKey = Depends(require_permission("strategies", "execute")),
 ):
-    """Execute strategy on entity. Requires an API key with strategies:execute."""
-    execution = StrategyEngine.execute_strategy(
-        db=db,
-        strategy_id=strategy_id,
-        entity_id=entity_id,
-        emit_events=emit_events
-    )
+    """Execute strategy on entity. Requires an API key with strategies:execute. A non-admin key can
+    only run its own workspace's strategies, over its own workspace's events (404 otherwise)."""
+    try:
+        execution = StrategyEngine.execute_strategy(
+            db=db,
+            strategy_id=strategy_id,
+            entity_id=entity_id,
+            emit_events=emit_events,
+            tenant_id=None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id),
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="strategy not found")
     
     return {
         "execution_id": str(execution.id),
@@ -243,8 +248,11 @@ def create_api_key(
     }
 
 @router.get("/security/roles")
-def list_roles(db: Session = Depends(get_db)):
-    """List available RBAC roles"""
+def list_roles(
+    db: Session = Depends(get_db),
+    _auth: APIKey = Depends(require_permission("api_keys", "read")),
+):
+    """List available RBAC roles (admin keys only: this exposes the permission model)"""
     from app.core.models_v3 import Role
     roles = db.query(Role).all()
     return {

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Index, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Index, UniqueConstraint, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from datetime import datetime, timezone
 import uuid
@@ -43,6 +43,9 @@ class EventV3(Base):
     nonce = Column(String, nullable=True)
 
     __table_args__ = (
+        # One block per position: a concurrent writer can no longer fork an entity's chain.
+        # (create_all only adds this on new databases; init_db adds it to existing ones.)
+        UniqueConstraint('entity_id', 'block_index', name='uq_events_v3_entity_block'),
         Index('idx_entity_block', 'entity_id', 'block_index'),
         Index('idx_tenant_entity', 'tenant_id', 'entity_id'),
         Index('idx_priority_created', 'priority_level', 'created_at'),

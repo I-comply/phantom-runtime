@@ -56,31 +56,12 @@ ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events_archive ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
--- 4. Create RLS Policies for Events
+-- 4. RLS Policies for Events
 -- ============================================================
-
--- Policy: Users can view events from their workspace
-CREATE POLICY "Users can view workspace events"
-  ON public.events FOR SELECT
-  USING (
-    workspace_id IN (
-      SELECT workspace_id FROM public.workspace_users 
-      WHERE user_id = auth.uid()
-    )
-  );
-
--- Policy: Authenticated users can insert events in their workspace
-CREATE POLICY "Users can insert events in their workspace"
-  ON public.events FOR INSERT
-  WITH CHECK (
-    workspace_id IN (
-      SELECT workspace_id FROM public.workspace_users 
-      WHERE user_id = auth.uid()
-    )
-  );
-
--- Service role can bypass RLS
-ALTER TABLE public.events DISABLE ROW LEVEL SECURITY;
+-- The policies live in 03_security_hardening.sql. They cannot be created here: they depend on
+-- public.workspace_users, which 02_init_workspaces.sql creates, so creating them in this file
+-- fails on a fresh database. RLS stays ENABLED (above) and is never disabled, so until 03 runs
+-- the table is deny-all for anon/authenticated.
 
 -- ============================================================
 -- 5. Functions for Event Management
@@ -146,7 +127,6 @@ CREATE TRIGGER events_update_updated_at
 -- ============================================================
 -- Grants
 -- ============================================================
-GRANT SELECT, INSERT ON public.events TO authenticated;
-GRANT SELECT ON public.events TO anon;
+-- Table grants for events are set in 03_security_hardening.sql (no grant to anon).
 GRANT EXECUTE ON FUNCTION public.get_entity_events TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_event_count TO authenticated;

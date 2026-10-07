@@ -27,25 +27,28 @@ class SubprocessExecutor:
         self.sandbox = Path(sandbox)
         self.sandbox.mkdir(parents=True, exist_ok=True)
 
-    def box(self, tenant):
-        """Per-tenant sandbox directory (tenants never share a filesystem view)."""
+    def box(self, tenant, agent=None):
+        """Per-tenant sandbox directory (tenants never share a filesystem view). With `agent`
+        (manifest limits.per_agent_sandbox) each agent also gets its own subdirectory."""
         if tenant is None:
             return self.sandbox
         b = self.sandbox / tenant
+        if agent is not None:
+            b = b / ("agent-" + agent)
         b.mkdir(parents=True, exist_ok=True)
         return b
 
-    def _run(self, tool, params, timeout, tenant=None):
+    def _run(self, tool, params, timeout, tenant=None, agent=None):
         p = subprocess.run([sys.executable, "-I", str(WORKER)],
                            input=json.dumps({"tool": tool, "params": params}).encode(),
-                           capture_output=True, cwd=str(self.box(tenant)), timeout=timeout,
+                           capture_output=True, cwd=str(self.box(tenant, agent)), timeout=timeout,
                            env={"PATH": "/usr/bin:/bin"})
         return _parse(p.stdout)
 
-    def run(self, tool, params, timeout, tenant=None):
+    def run(self, tool, params, timeout, tenant=None, agent=None):
         t0 = time.time()
         try:
-            out = self._run(tool, params, timeout, tenant)
+            out = self._run(tool, params, timeout, tenant, agent)
         except subprocess.TimeoutExpired:
             out = {"ok": False, "error": "timeout"}
         except Exception as e:
@@ -87,8 +90,10 @@ class DockerExecutor(SubprocessExecutor):
         except PermissionError:
             os.chmod(path, 0o1777)  # nosec B103
 
-    def box(self, tenant):
-        b = super().box(tenant)
+    def box(self, tenant, agent=None):
+        b = super().box(tenant, agent)
+        if agent is not None:
+            self._own(b.parent)
         self._own(b)
         return b
 
@@ -106,10 +111,10 @@ class DockerExecutor(SubprocessExecutor):
     def _cleanup(self, name):
         subprocess.run([self.docker, "rm", "-f", name], capture_output=True, timeout=30)
 
-    def _run(self, tool, params, timeout, tenant=None):
+    def _run(self, tool, params, timeout, tenant=None, agent=None):
         name = f"atl-{uuid.uuid4().hex[:16]}"
         try:
-            p = subprocess.run(self.argv(name, box=self.box(tenant)), input=json.dumps({"tool": tool, "params": params}).encode(),
+            p = subprocess.run(self.argv(name, box=self.box(tenant, agent)), input=json.dumps({"tool": tool, "params": params}).encode(),
                                capture_output=True, timeout=timeout)
         except BaseException:
             try:

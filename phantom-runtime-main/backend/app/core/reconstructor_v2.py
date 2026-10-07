@@ -1,22 +1,27 @@
+import copy
 from typing import Dict, Any, List
 from app.core.models import Event
 
 class StateReconstructorV2:
-    """Enhanced state reconstructor with event application method exposed"""
+    """The one state reconstructor. Every read path (full replay, snapshot creation, snapshot +
+    incremental replay) goes through apply_event, so they cannot disagree.
+
+    Replay is a pure function of the ordered events: apply_event never writes through into an
+    event's payload, and the returned state never aliases it (payloads are deep-copied in)."""
     
     @staticmethod
     def reconstruct(events: List[Event]) -> Dict[str, Any]:
-        """Reconstruct entity state from event history"""
+        """Reconstruct entity state from event history (events must be in id order)"""
         state = {}
         for event in events:
-            StateReconstructorV2._apply_event(state, event)
+            StateReconstructorV2.apply_event(state, event)
         return state
     
     @staticmethod
-    def _apply_event(state: Dict[str, Any], event: Event) -> None:
-        """Apply a single event to state (in-place mutation)"""
+    def apply_event(state: Dict[str, Any], event: Event) -> None:
+        """Apply a single event to state (in-place mutation of `state` only)"""
         event_type = event.event_type
-        payload = event.payload
+        payload = copy.deepcopy(event.payload)
         
         if event_type == "init":
             state.update(payload)
@@ -44,6 +49,9 @@ class StateReconstructorV2:
             # Generic event - merge payload
             state.update(payload)
     
+    # Backward-compatible name (snapshot_manager and older callers used the underscore form).
+    _apply_event = apply_event
+
     @staticmethod
     def _apply_defi_event(state: Dict[str, Any], event_type: str, payload: Dict[str, Any]) -> None:
         """Apply DeFi-specific event logic"""

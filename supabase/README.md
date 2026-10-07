@@ -47,23 +47,34 @@ SUPABASE_WEBHOOK_SIGNING_SECRET=your-webhook-secret-here
 
 ```
 supabase/
-├── migrations/              # SQL migration files
-│   ├── 01_init_events.sql
-│   ├── 02_init_snapshots.sql
-│   ├── 03_init_workspaces.sql
-│   ├── 04_init_plugins.sql
-│   └── 05_init_defi.sql
-├── seeds/                   # Seed data scripts
-│   └── seed-demo-data.sql
-├── functions/               # Edge Functions
-│   ├── event-processor.ts
-│   └── state-reconstructor.ts
-├── policies/                # Row Level Security (RLS)
-│   ├── events_rls.sql
-│   └── workspaces_rls.sql
-├── config.json              # Supabase project config
-└── README.md                # This file
+├── migrations/                      # applied in filename order
+│   ├── 01_init_events.sql           # events, events_archive, helper functions
+│   ├── 02_init_workspaces.sql       # workspaces, workspace_users, api_keys
+│   └── 03_security_hardening.sql    # RLS policies, least-privilege grants, append-only events,
+│                                    # add_workspace_user() authorization fix, archive_events()
+├── seeds/
+│   └── demo-data.sql
+├── tests/                           # security tests, run on plain PostgreSQL (see below)
+│   ├── 00_supabase_stub.sql         # minimal anon/authenticated/service_role + auth.uid() stand-in
+│   ├── test_security.sql
+│   └── run.sh
+├── config.json
+└── README.md
 ```
+
+Tables for snapshots, plugins, DeFi and the v3 event chain are created by the backend itself
+(`phantom-runtime-main/backend/app/core/database.py`, SQLAlchemy `create_all`), not by these migrations.
+Their row level security is not managed here.
+
+### Security tests
+`supabase/tests/run.sh` creates a scratch database, applies the stub and every migration, and runs
+`test_security.sql` (anon denied, tenant isolation, no policy recursion, append-only events,
+privilege escalation closed, archive_events). Needs a PostgreSQL you can `CREATE DATABASE` on:
+
+```bash
+PGHOST=localhost PGUSER=postgres PGPASSWORD=... supabase/tests/run.sh
+```
+CI runs it in `.github/workflows/supabase.yml`.
 
 ## Quick Start
 
@@ -83,7 +94,7 @@ supabase link --project-id YOUR_PROJECT_ID
 supabase db push
 
 # Seed demo data
-psql $DATABASE_URL < supabase/seeds/seed-demo-data.sql
+psql $DATABASE_URL < supabase/seeds/demo-data.sql
 
 # Deploy Edge Functions
 supabase functions deploy
@@ -102,23 +113,24 @@ supabase functions deploy
 
 ### Tables Created
 
-| Table | Purpose | Rows |
-|-------|---------|------|
-| `events` | Immutable event log | Core |
-| `snapshots` | State snapshots | Optimization |
-| `workspaces` | Multi-tenant workspaces | Isolation |
-| `workspace_users` | User-workspace mapping | Access |
-| `api_keys` | API key management | Security |
-| `defi_events` | DeFi-specific events | Domain |
-| `plugins` | Plugin registry | Extension |
-| `audit_logs` | Compliance logging | Audit |
+| Table | Purpose | Created by |
+|-------|---------|------------|
+| `events` | Append-only event log | migration 01 |
+| `events_archive` | Archived events (via `archive_events()`) | migration 01 |
+| `workspaces` | Multi-tenant workspaces | migration 02 |
+| `workspace_users` | User-workspace mapping | migration 02 |
+| `api_keys` | API key management | migration 02 |
+| snapshots, plugins, DeFi, v3 events | Backend tables | backend `create_all`, not migrations |
 
-### Row Level Security (RLS)
+### Row Level Security
 
-All tables have RLS enabled by default:
-- Users can only access their workspace data
-- Service role can bypass RLS
-- Workspace owners have full access
+RLS is enabled on every table created by the migrations and is never disabled:
+- `anon` has no access to any table.
+- `authenticated` can read and insert `events` only in workspaces they belong to, and read their workspaces and members.
+- `events` is append-only: UPDATE, DELETE and TRUNCATE are rejected by trigger for every role. Rows leave only through `archive_events(before)`, callable by `service_role`.
+- `add_workspace_user()` requires the caller to be a workspace owner or admin; only an owner may grant `owner`.
+- `service_role` bypasses RLS (server-side use only; never ship its key to a client).
+- `api_keys` has no policy: it is readable only with `service_role`.
 
 ## Authentication
 

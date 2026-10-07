@@ -35,3 +35,11 @@ class Evidence:
             return sha256(self.get(tenant, h)) == h
         except (OSError, ValueError):
             return False
+
+    def erase(self, tenant, h):
+        """Delete a blob. Callers must record an evidence.erased tombstone in the ledger first."""
+        try:
+            self._p(tenant, h).unlink()
+            return True
+        except FileNotFoundError:
+            return False

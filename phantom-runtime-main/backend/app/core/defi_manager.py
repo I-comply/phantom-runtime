@@ -41,6 +41,7 @@ class DeFiEventManager:
             **(metadata or {})
         }
         
+        EventStore.lock_entity(db, entity_id)
         core_event = Event(
             entity_id=entity_id,
             event_type=event_type,
@@ -151,6 +152,11 @@ class AsyncPipeline:
             events_data = job.payload.get("events", [])
             created_events = []
             
+            # Lock every touched entity in a fixed order (no deadlock between two batches) before
+            # inserting, so the batch's events commit in id order with respect to snapshots.
+            for locked_entity in sorted({e["entity_id"] for e in events_data}):
+                EventStore.lock_entity(db, locked_entity)
+
             for event_data in events_data:
                 event = Event(
                     entity_id=event_data["entity_id"],
