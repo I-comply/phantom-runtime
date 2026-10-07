@@ -84,6 +84,8 @@ def test_plugin_create_requires_auth(client):
 # ---- RBAC / tenant isolation: v3 events ----
 
 def test_v3_tenant_isolation_on_shared_entity_id(client, bootstrap_key, workspace, admin_key, platform_key):
+    """An entity id belongs to the workspace whose chain it started; another workspace gets 409, sees
+    nothing, and cannot extend or poison the chain."""
     entity = eid()
     ws2 = make_ws(client)
     key_a = mint_key(client, admin_key, workspace["id"], name="a")
@@ -92,15 +94,14 @@ def test_v3_tenant_isolation_on_shared_entity_id(client, bootstrap_key, workspac
     assert client.post("/api/v3/events", json={"entity_id": entity, "event_type": "init", "payload": {"owner": "A"}},
                        headers={"X-API-Key": key_a}).status_code == 200
     assert client.post("/api/v3/events", json={"entity_id": entity, "event_type": "init", "payload": {"owner": "B"}},
-                       headers={"X-API-Key": key_b}).status_code == 200
+                       headers={"X-API-Key": key_b}).status_code == 409
 
     chain_b = client.get(f"/api/v3/events/chain/{entity}", headers={"X-API-Key": key_b}).json()
-    assert chain_b["chain_length"] == 1
-    assert chain_b["events"][0]["payload"]["owner"] == "B"
+    assert chain_b["chain_length"] == 0
 
     chain_platform = client.get(f"/api/v3/events/chain/{entity}", headers={"X-API-Key": platform_key}).json()
-    assert chain_platform["chain_length"] >= 2  # a platform admin sees across tenants
-    # an ordinary workspace admin (admin_key belongs to the same workspace as key_a) sees only its own
+    assert chain_platform["chain_length"] == 1  # a platform admin sees across tenants
+    # an ordinary workspace admin (admin_key belongs to the same workspace as key_a) sees its own
     chain_ws_admin = client.get(f"/api/v3/events/chain/{entity}", headers={"X-API-Key": admin_key}).json()
     assert chain_ws_admin["chain_length"] == 1
 

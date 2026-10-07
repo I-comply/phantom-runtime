@@ -1,3 +1,5 @@
+from fastapi.responses import JSONResponse
+from app.core.event_store import EntityOwnedElsewhere
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
@@ -45,6 +47,11 @@ app.add_middleware(
 )
 
 # Include v1/v2 routers (backward compatible)
+@app.exception_handler(EntityOwnedElsewhere)
+async def _entity_owned_elsewhere(request, exc):
+    return JSONResponse(status_code=409, content={"detail": "entity belongs to another workspace"})
+
+
 app.include_router(routes_events.router)
 app.include_router(routes_state.router)
 app.include_router(routes_workspaces.router)

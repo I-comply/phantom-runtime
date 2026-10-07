@@ -13,6 +13,10 @@ from typing import List, Dict, Any, Optional
 # an entity to its creator's workspace the first time it's written; every read
 # below filters through that same link when a workspace_id is given.
 
+class EntityOwnedElsewhere(Exception):
+    """The entity already belongs to a different workspace."""
+
+
 class EventStore:
     @staticmethod
     def lock_entity(db: Session, entity_id: str) -> None:
@@ -36,8 +40,10 @@ class EventStore:
         existing_link = db.query(EntityWorkspace).filter(
             EntityWorkspace.entity_id == entity_id
         ).first()
-        if not existing_link:
+        if existing_link is None:
             db.add(EntityWorkspace(workspace_id=workspace_id, entity_id=entity_id))
+        elif str(existing_link.workspace_id) != str(workspace_id):
+            raise EntityOwnedElsewhere(entity_id)
 
     @staticmethod
     def append_event(
@@ -49,6 +55,7 @@ class EventStore:
     ) -> Event:
         """Append a new event to the store. See claim_entity for the workspace_id link."""
         EventStore.lock_entity(db, entity_id)
+        EventStore.claim_entity(db, entity_id, workspace_id)  # first: a refused write adds nothing
         event = Event(
             entity_id=entity_id,
             event_type=event_type,
@@ -56,7 +63,6 @@ class EventStore:
             created_at=datetime.now(timezone.utc)
         )
         db.add(event)
-        EventStore.claim_entity(db, entity_id, workspace_id)
         db.commit()
         db.refresh(event)
         return event
