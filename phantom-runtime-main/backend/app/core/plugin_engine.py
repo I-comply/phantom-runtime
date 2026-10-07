@@ -1,4 +1,5 @@
 from app.core.models_v2 import Plugin, PluginExecution
+from app.core.sandbox import run_sandboxed
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
@@ -66,38 +67,14 @@ class PluginEngine:
     
     @staticmethod
     def _execute_code(code: str, state: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute plugin code with limited scope"""
-        # Create safe execution environment
-        safe_globals = {
-            '__builtins__': {
-                'len': len,
-                'str': str,
-                'int': int,
-                'float': float,
-                'dict': dict,
-                'list': list,
-                'sum': sum,
-                'max': max,
-                'min': min,
-                'round': round,
-            },
-            'json': json,
-        }
-        
-        safe_locals = {
-            'state': state.copy(),  # Work on copy to prevent mutation
-            'config': config,
-        }
-        
-        # Execute code
-        tree = validate_user_code(code)
-        exec(compile(tree, '<user_code>', 'exec'), safe_globals, safe_locals)  # nosec B102 - AST-validated, restricted builtins
-        
-        # Return result from 'result' variable
-        if 'result' not in safe_locals:
-            raise ValueError("Plugin code must define 'result' variable")
-        
-        return safe_locals['result']
+        """Execute plugin code in an isolated subprocess (see core/sandbox.py). The AST guard runs first
+        as a second layer: it rejects imports, private/dunder access and dangerous builtins before the
+        code ever reaches the sandbox."""
+        validate_user_code(code)
+        out = run_sandboxed(code, {'state': state.copy(), 'config': config})
+        if not out["ok"]:
+            raise ValueError(out["error"])
+        return out["result"]
     
     @staticmethod
     def get_plugin_executions(db: Session, plugin_id: str, limit: int = 50):

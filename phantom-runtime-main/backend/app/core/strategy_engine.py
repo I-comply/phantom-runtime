@@ -1,9 +1,11 @@
 from sqlalchemy.orm import Session
 from app.core.models_v3 import Strategy, StrategyExecution, EventV3
 from app.core.event_engine_v3 import EventEngineV3
-from typing import Dict, Any, List
+from app.core.sandbox import run_sandboxed
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import logging
+import uuid
 import json
 from app.core.code_guard import validate_user_code
 
@@ -105,13 +107,25 @@ for asset, amount in balances.items():
         db: Session,
         strategy_id: str,
         entity_id: str,
-        emit_events: bool = True
+        emit_events: bool = True,
+        tenant_id: Optional[str] = None
     ) -> StrategyExecution:
-        """Execute strategy on entity"""
+        """Execute strategy on entity.
+
+        tenant_id=None means unscoped (admin/internal callers only): the strategy may belong to any
+        tenant, the event chain is read across tenants, and output events are stamped with the
+        strategy's own tenant. With a tenant_id, the strategy must belong to that tenant, only that
+        tenant's events are read, and output events are written to that tenant."""
         
-        strategy = db.query(Strategy).filter(Strategy.id == strategy_id).first()
-        if not strategy or not strategy.is_active:
-            raise ValueError(f"Strategy {strategy_id} not found or inactive")
+        try:
+            sid = uuid.UUID(str(strategy_id))
+        except ValueError:
+            raise LookupError(f"Strategy {strategy_id} not found or inactive")
+        strategy = db.query(Strategy).filter(Strategy.id == sid).first()
+        if (not strategy or not strategy.is_active
+                or (tenant_id is not None and str(strategy.tenant_id) != str(tenant_id))):
+            raise LookupError(f"Strategy {strategy_id} not found or inactive")
+        event_tenant = tenant_id if tenant_id is not None else (str(strategy.tenant_id) if strategy.tenant_id else None)
         
         # Create execution record
         execution = StrategyExecution(
@@ -124,7 +138,7 @@ for asset, amount in balances.items():
         
         try:
             # Get events for analysis
-            events = EventEngineV3.get_entity_chain(db, entity_id)
+            events = EventEngineV3.get_entity_chain(db, entity_id, tenant_id)
             events_data = [
                 {
                     'id': e.id,
@@ -159,6 +173,7 @@ for asset, amount in balances.items():
                     entity_id=entity_id,
                     event_type=f"strategy_{strategy.strategy_type}",
                     payload=result,
+                    tenant_id=event_tenant,
                     source='agent',
                     created_by=f"strategy:{strategy_id}"
                 )
@@ -179,33 +194,11 @@ for asset, amount in balances.items():
     
     @staticmethod
     def _execute_code(code: str, events: List[Dict], state: Dict, config: Dict) -> Dict[str, Any]:
-        """Execute strategy code in sandboxed environment"""
-        safe_globals = {
-            '__builtins__': {
-                'len': len,
-                'str': str,
-                'int': int,
-                'float': float,
-                'dict': dict,
-                'list': list,
-                'sum': sum,
-                'max': max,
-                'min': min,
-                'abs': abs,
-                'round': round,
-            }
-        }
-        
-        safe_locals = {
-            'events': events,
-            'state': state.copy(),
-            'config': config,
-        }
-        
-        tree = validate_user_code(code)
-        exec(compile(tree, '<user_code>', 'exec'), safe_globals, safe_locals)  # nosec B102 - AST-validated, restricted builtins
-        
-        if 'result' not in safe_locals:
-            raise ValueError("Strategy must define 'result' variable")
-        
-        return safe_locals['result']
+        """Execute strategy code in an isolated subprocess (see core/sandbox.py). The AST guard runs
+        first as a second layer: it rejects imports, private/dunder access and dangerous builtins before
+        the code ever reaches the sandbox."""
+        validate_user_code(code)
+        out = run_sandboxed(code, {'events': events, 'state': state.copy(), 'config': config})
+        if not out["ok"]:
+            raise ValueError(out["error"])
+        return out["result"]

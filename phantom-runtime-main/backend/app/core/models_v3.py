@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Index, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Index, UniqueConstraint, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from datetime import datetime, timezone
 import uuid
@@ -6,42 +6,56 @@ import hashlib
 import json
 from app.core.database import Base
 
-# Event Hardening with Chaining
+# Corruption-detecting event chain. NOT tamper-evident: event_hash is an
+# unkeyed SHA-256 over the event's own fields, so anyone with write access to
+# this table can recompute every hash and produce a self-consistent forgery.
+# Catches accidental corruption/reordering, not a privileged attacker. For an
+# actually tamper-evident, HMAC-keyed ledger (resists DB-write access without
+# the master key), see https://github.com/I-comply/Agent-Trust-Layer
+# (atl/ledger.py) — this engine is a separate, unrelated implementation, not
+# a lighter version of that one.
 class EventV3(Base):
     __tablename__ = "events_v3"
-    
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     entity_id = Column(String, nullable=False, index=True)
     event_type = Column(String, nullable=False)
     payload = Column(JSONB, nullable=False)
-    
-    # Event Hardening Fields
+
+    # Chain fields (corruption detection only; see class docstring)
     event_hash = Column(String(64), unique=True, nullable=False, index=True)
     previous_hash = Column(String(64), nullable=True)
     block_index = Column(Integer, nullable=False)
     schema_version = Column(Integer, default=1)
     priority_level = Column(SQLEnum('normal', 'high', 'critical', name='priority_enum'), default='normal')
     source = Column(SQLEnum('api', 'agent', 'system', 'external', name='source_enum'), default='api')
-    
+
     # Metadata
     tenant_id = Column(UUID(as_uuid=True), ForeignKey('workspaces.id'), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     created_by = Column(String, nullable=True)  # User/API key identifier
-    
-    # Security
+
+    # Caller-supplied, currently unverified: stored as given, never checked
+    # against anything by EventEngineV3 or verify_chain_integrity(). Not an
+    # enforced control until something actually validates them — don't rely
+    # on either column for tamper detection or replay protection yet.
     hmac_signature = Column(String, nullable=True)
-    nonce = Column(String, nullable=True)  # Replay protection
-    
+    nonce = Column(String, nullable=True)
+
     __table_args__ = (
+        # One block per position: a concurrent writer can no longer fork an entity's chain.
+        # (create_all only adds this on new databases; init_db adds it to existing ones.)
+        UniqueConstraint('entity_id', 'block_index', name='uq_events_v3_entity_block'),
         Index('idx_entity_block', 'entity_id', 'block_index'),
         Index('idx_tenant_entity', 'tenant_id', 'entity_id'),
         Index('idx_priority_created', 'priority_level', 'created_at'),
     )
-    
+
     @staticmethod
-    def compute_hash(entity_id: str, event_type: str, payload: dict, 
+    def compute_hash(entity_id: str, event_type: str, payload: dict,
                      block_index: int, previous_hash: str = None) -> str:
-        """Compute deterministic event hash"""
+        """Deterministic, unkeyed chain hash — corruption/reordering detection
+        only, see class docstring for what this does not guarantee."""
         data = f"{entity_id}:{event_type}:{json.dumps(payload, sort_keys=True)}:{block_index}:{previous_hash or ''}"
         return hashlib.sha256(data.encode()).hexdigest()
 

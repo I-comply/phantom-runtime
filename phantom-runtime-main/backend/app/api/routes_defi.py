@@ -4,7 +4,11 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from app.core.database import get_db
 from app.core.defi_manager import DeFiEventManager, AsyncPipeline
+from app.core.deps import require_permission, is_platform_admin
+from app.core.models_v3 import APIKey
 from datetime import datetime
+
+from app.api.websocket import publish_event
 
 router = APIRouter(prefix="/api/defi", tags=["defi"])
 
@@ -15,7 +19,6 @@ class DeFiEventCreate(BaseModel):
     amount: str
     price: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = {}
-    workspace_id: Optional[str] = None
 
 class DeFiEventResponse(BaseModel):
     id: int
@@ -25,13 +28,18 @@ class DeFiEventResponse(BaseModel):
     amount: str
     price: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 @router.post("/events", response_model=DeFiEventResponse)
-def create_defi_event(event: DeFiEventCreate, db: Session = Depends(get_db)):
-    """Create a DeFi event (deposit, withdraw, trade, etc.)"""
+def create_defi_event(
+    event: DeFiEventCreate,
+    db: Session = Depends(get_db),
+    api_key_obj: APIKey = Depends(require_permission("defi", "write")),
+):
+    """Create a DeFi event (deposit, withdraw, trade, etc.), stamped with the
+    caller's own workspace (never caller-supplied)."""
     try:
         defi_event = DeFiEventManager.create_defi_event(
             db=db,
@@ -41,16 +49,24 @@ def create_defi_event(event: DeFiEventCreate, db: Session = Depends(get_db)):
             amount=event.amount,
             price=event.price,
             metadata=event.metadata,
-            workspace_id=event.workspace_id
+            workspace_id=str(api_key_obj.tenant_id),
         )
+        publish_event({"id": defi_event.core_event_id, "entity_id": defi_event.entity_id,
+                       "event_type": defi_event.event_type, "version": "v1"}, api_key_obj.tenant_id)
         return defi_event
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/portfolio/{entity_id}")
-def get_portfolio(entity_id: str, db: Session = Depends(get_db)):
-    """Get portfolio summary for an entity"""
-    portfolio = DeFiEventManager.get_entity_portfolio(db, entity_id)
+def get_portfolio(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    api_key_obj: APIKey = Depends(require_permission("defi", "read")),
+):
+    """Get portfolio summary for an entity, scoped to the caller's own
+    workspace (unscoped for admin keys)"""
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    portfolio = DeFiEventManager.get_entity_portfolio(db, entity_id, workspace_id)
     return portfolio
 
 @router.get("/supported-events")

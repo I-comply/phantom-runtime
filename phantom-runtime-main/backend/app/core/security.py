@@ -9,6 +9,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def key_expired(api_key) -> bool:
+    """expires_at is a naive UTC column (the driver returns it without tzinfo); comparing it with an
+    aware now() raised TypeError, so any key with an expiry turned into a 500."""
+    exp = api_key.expires_at
+    if exp is None:
+        return False
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    return exp < datetime.now(timezone.utc)
+
+
 class SecurityManager:
     """HMAC signing, RBAC, and API key management"""
     
@@ -69,7 +80,7 @@ class SecurityManager:
             return None
         
         # Check expiration
-        if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
+        if key_expired(api_key):
             return None
         
         # Update last used
@@ -107,35 +118,58 @@ class SecurityManager:
             'admin': {
                 'events': ['read', 'write', 'delete'],
                 'strategies': ['read', 'write', 'execute', 'delete'],
+                'plugins': ['read', 'write', 'execute', 'delete'],
+                'defi': ['read', 'write'],
+                'snapshots': ['read', 'write'],
                 'workspaces': ['read', 'write', 'delete'],
                 'api_keys': ['read', 'write', 'delete']
             },
             'agent': {
                 'events': ['read', 'write'],
                 'strategies': ['read', 'execute'],
+                'plugins': ['read', 'execute'],
+                'defi': ['read', 'write'],
+                'snapshots': ['read', 'write'],
                 'workspaces': ['read']
             },
             'viewer': {
                 'events': ['read'],
                 'strategies': ['read'],
+                'plugins': ['read'],
+                'defi': ['read'],
+                'snapshots': ['read'],
                 'workspaces': ['read']
             },
             'system': {
                 'events': ['read', 'write'],
                 'strategies': ['execute'],
+                'plugins': ['execute'],
+                'defi': ['read', 'write'],
+                'snapshots': ['read', 'write'],
                 'workspaces': ['read']
             }
         }
-        
+
         for role_name, permissions in roles_config.items():
             existing = db.query(Role).filter(Role.name == role_name).first()
             if not existing:
-                role = Role(
-                    name=role_name,
-                    permissions=permissions
-                )
+                role = Role(name=role_name, permissions=permissions)
                 db.add(role)
-        
+            else:
+                # Merge in any resources this version of the app knows about that
+                # the stored row predates (e.g. upgrading onto a running deployment
+                # that minted its roles before 'plugins'/'defi'/'snapshots' existed).
+                # Never removes or narrows a permission an operator already granted.
+                merged = dict(existing.permissions or {})
+                changed = False
+                for resource, actions in permissions.items():
+                    if resource not in merged:
+                        merged[resource] = actions
+                        changed = True
+                if changed:
+                    existing.permissions = merged
+                    logger.info(f"RBAC role '{role_name}' gained new resource grants: {list(merged.keys())}")
+
         db.commit()
         logger.info("RBAC roles initialized")
 

@@ -1,7 +1,9 @@
-fastapi==0.115.0
+fastapi==0.142.2
+starlette==1.7.0
 uvicorn==0.30.0
 sqlalchemy==2.0.32
 psycopg2-binary==2.9.9
 python-dotenv==1.2.2
-pydantic==2.8.2
+pydantic==2.13.5
 python-multipart==0.0.31
+websockets==17.2

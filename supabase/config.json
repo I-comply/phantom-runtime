@@ -5,7 +5,7 @@
   "tables": [
     {
       "name": "events",
-      "description": "Immutable event store",
+      "description": "Append-only event store",
       "rls_enabled": true
     },
     {
@@ -26,12 +26,14 @@
     {
       "name": "snapshots",
       "description": "Event snapshots",
-      "rls_enabled": true
+      "rls_enabled": false,
+      "managed_by": "backend create_all (no migration; RLS not applied)"
     },
     {
       "name": "defi_events",
       "description": "DeFi-specific events",
-      "rls_enabled": true
+      "rls_enabled": false,
+      "managed_by": "backend create_all (no migration; RLS not applied)"
     }
   ],
   "edge_functions": [
@@ -48,7 +50,11 @@
   ],
   "realtime": {
     "enabled": true,
-    "tables": ["events", "snapshots", "defi_events"]
+    "tables": [
+      "events",
+      "snapshots",
+      "defi_events"
+    ]
   },
   "authentication": {
     "providers": [

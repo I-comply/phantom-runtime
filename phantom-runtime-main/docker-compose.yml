@@ -29,7 +29,20 @@ services:
       - "8001:8001"
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-phantom_secure_pass}@postgres:5432/phantomos
-      CORS_ORIGINS: "*"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      PHANTOM_BOOTSTRAP_ADMIN_KEY: ${PHANTOM_BOOTSTRAP_ADMIN_KEY:?set PHANTOM_BOOTSTRAP_ADMIN_KEY to mint the first admin API key, then unset it}
+      # Optional: workspace id whose `admin` keys are platform admins (cross-tenant). Unset = none.
+      PHANTOM_PLATFORM_TENANT_ID: ${PHANTOM_PLATFORM_TENANT_ID:-}
+      # Plugin/strategy code runs via app/core/sandbox.py, not in-process exec(). The
+      # default "subprocess" driver (isolated process, unprivileged uid, rlimits — no
+      # Docker socket needed) is what this container runs; it blocks fork/exec and
+      # privileged-file reads but NOT outbound network from sandboxed code. The
+      # stronger "docker" driver (per-call container, --network none) needs direct
+      # host Docker access and must NEVER get it by mounting /var/run/docker.sock
+      # into this container — that trades sandbox-escape-RCE for host-root-RCE,
+      # which is worse. Run SANDBOX_EXECUTOR=docker only on a host where this
+      # backend runs outside a container (or has its own, unshared, daemon).
+      SANDBOX_EXECUTOR: ${SANDBOX_EXECUTOR:-subprocess}
     depends_on:
       postgres:
         condition: service_healthy

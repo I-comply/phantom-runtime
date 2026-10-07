@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.core.models import Event
 from app.core.models_v2 import DeFiEvent, AsyncJob
+from app.core.event_store import EventStore
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 import uuid
@@ -13,7 +14,8 @@ class DeFiEventManager:
     
     SUPPORTED_EVENT_TYPES = [
         "deposit", "withdraw", "trade", "transfer",
-        "stake", "unstake", "claim_rewards"
+        "stake", "unstake", "claim_rewards",
+        "lock_stake", "release_stake"
     ]
     
     @staticmethod
@@ -32,22 +34,44 @@ class DeFiEventManager:
         if event_type not in DeFiEventManager.SUPPORTED_EVENT_TYPES:
             raise ValueError(f"Unsupported DeFi event type: {event_type}")
         
-        # Create core event first
+        # Strict, exact amounts (ValueError -> 400): a bad amount used to be stored and then made
+        # every later replay of the entity fail.
+        from app.core import money
+        parsed = money.parse_amount(amount)
+        if price is not None:
+            money.parse_amount(price)
+        try:
+            money.validate_money_payload(event_type, metadata or {})  # e.g. trade from_amount/to_amount
+        except money.AmountError as e:
+            raise ValueError(str(e))
+
+        # Create core event first. Caller metadata comes first so it can't override the real fields.
         payload = {
+            **(metadata or {}),
             "asset": asset,
-            "amount": amount,
+            "amount": money.fmt(parsed),
             "price": price,
-            **(metadata or {})
         }
         
+        EventStore.lock_entity(db, entity_id)
         core_event = Event(
             entity_id=entity_id,
             event_type=event_type,
             payload=payload
         )
         db.add(core_event)
+        # This bypasses EventStore.append_event (needs the flushed core_event.id
+        # below before DeFiEvent can be created), so claim the entity->workspace
+        # link here too — otherwise a DeFi-only entity_id never gets linked and
+        # the v1 event/state/snapshot endpoints 404 it even for its own creator.
+        EventStore.claim_entity(db, entity_id, workspace_id)
+        try:
+            EventStore.check_money_rules(db, entity_id, event_type, payload)
+        except money.AmountError as e:
+            db.rollback()
+            raise ValueError(str(e))
         db.flush()  # Get ID without committing
-        
+
         # Create DeFi event
         defi_event = DeFiEvent(
             workspace_id=workspace_id,
@@ -67,46 +91,61 @@ class DeFiEventManager:
         return defi_event
     
     @staticmethod
-    def get_entity_portfolio(db: Session, entity_id: str) -> Dict[str, Any]:
-        """Get portfolio summary for an entity"""
-        defi_events = db.query(DeFiEvent).filter(
-            DeFiEvent.entity_id == entity_id
-        ).order_by(DeFiEvent.created_at.asc()).all()
+    def get_entity_portfolio(db: Session, entity_id: str, workspace_id: Optional[str] = None) -> Dict[str, Any]:
+        """Get portfolio summary for an entity. workspace_id=None means unscoped
+        (admin/internal callers only); route handlers must pass the caller's own
+        workspace_id for non-admin keys."""
+        q = db.query(DeFiEvent).filter(DeFiEvent.entity_id == entity_id)
+        if workspace_id is not None:
+            q = q.filter(DeFiEvent.workspace_id == workspace_id)
+        defi_events = q.order_by(DeFiEvent.created_at.asc()).all()
         
+        # Exact decimal arithmetic; balances and amounts are canonical decimal strings.
+        from app.core import money
         balances = {}
+        staked = {}
         transactions = []
-        
+
+        def bal(asset):
+            return money.lenient(balances.get(asset, 0))
+
         for event in defi_events:
             asset = event.asset
-            amount = float(event.amount)
-            
-            if event.event_type == "deposit":
-                balances[asset] = balances.get(asset, 0) + amount
-            elif event.event_type == "withdraw":
-                balances[asset] = balances.get(asset, 0) - amount
+            amount = money.lenient(event.amount)
+
+            if event.event_type in ("deposit", "claim_rewards"):
+                balances[asset] = money.fmt(money.add(bal(asset), amount))
+            elif event.event_type in ("withdraw", "transfer"):
+                balances[asset] = money.fmt(money.sub(bal(asset), amount))
+            elif event.event_type in ("lock_stake", "release_stake"):
+                sign = 1 if event.event_type == "lock_stake" else -1
+                balances[asset] = money.fmt(money.sub(bal(asset), amount * sign))
+                staked[asset] = money.fmt(money.add(money.lenient(staked.get(asset, 0)), amount * sign))
             elif event.event_type == "trade":
                 # Handle trade event_metadata
-                from_asset = event.event_metadata.get("from_asset")
-                to_asset = event.event_metadata.get("to_asset")
-                from_amount = float(event.event_metadata.get("from_amount", 0))
-                to_amount = float(event.event_metadata.get("to_amount", 0))
-                
+                meta = event.event_metadata or {}
+                from_asset = meta.get("from_asset")
+                to_asset = meta.get("to_asset")
+                from_amount = money.lenient(meta.get("from_amount", 0))
+                to_amount = money.lenient(meta.get("to_amount", 0))
+
                 if from_asset:
-                    balances[from_asset] = balances.get(from_asset, 0) - from_amount
+                    balances[from_asset] = money.fmt(money.sub(bal(from_asset), from_amount))
                 if to_asset:
-                    balances[to_asset] = balances.get(to_asset, 0) + to_amount
-            
+                    balances[to_asset] = money.fmt(money.add(bal(to_asset), to_amount))
+
             transactions.append({
                 "type": event.event_type,
                 "asset": asset,
-                "amount": amount,
+                "amount": money.fmt(amount),
                 "price": event.price,
                 "timestamp": event.created_at.isoformat()
             })
-        
+
         return {
             "entity_id": entity_id,
             "balances": balances,
+            "staked": staked,
             "transaction_count": len(transactions),
             "recent_transactions": transactions[-10:]
         }
@@ -142,6 +181,11 @@ class AsyncPipeline:
             events_data = job.payload.get("events", [])
             created_events = []
             
+            # Lock every touched entity in a fixed order (no deadlock between two batches) before
+            # inserting, so the batch's events commit in id order with respect to snapshots.
+            for locked_entity in sorted({e["entity_id"] for e in events_data}):
+                EventStore.lock_entity(db, locked_entity)
+
             for event_data in events_data:
                 event = Event(
                     entity_id=event_data["entity_id"],

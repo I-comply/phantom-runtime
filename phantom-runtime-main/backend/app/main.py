@@ -1,3 +1,5 @@
+from fastapi.responses import JSONResponse
+from app.core.event_store import EntityOwnedElsewhere
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
@@ -25,16 +27,31 @@ app = FastAPI(
     description="Premium event-sourcing platform with hash-chained events, async pipeline, and strategy execution"
 )
 
-# CORS
+# CORS. This API has no cookie/session-based auth (auth is the X-API-Key header,
+# which browsers never send automatically cross-origin), so allow_credentials
+# buys nothing and combining it with a wildcard origin is a pure foot-gun —
+# refuse to start that way rather than silently accept requests from any origin.
+_cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(',') if o.strip()]
+if "*" in _cors_origins:
+    raise RuntimeError(
+        "CORS_ORIGINS=\"*\" is not supported with allow_credentials=True "
+        "(browsers reject it, and it signals trust-any-origin). "
+        "Set CORS_ORIGINS to an explicit comma-separated origin list."
+    )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS.split(','),
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Include v1/v2 routers (backward compatible)
+@app.exception_handler(EntityOwnedElsewhere)
+async def _entity_owned_elsewhere(request, exc):
+    return JSONResponse(status_code=409, content={"detail": "entity belongs to another workspace"})
+
+
 app.include_router(routes_events.router)
 app.include_router(routes_state.router)
 app.include_router(routes_workspaces.router)
@@ -85,4 +102,6 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     import uvicorn
     import os
+    # Loopback by default. The Docker image starts uvicorn directly with --host 0.0.0.0 (see Dockerfile),
+    # so only a bare `python -m app.main` is affected; set HOST to expose it.
     uvicorn.run(app, host=os.environ.get("HOST", "127.0.0.1"), port=8001)
