@@ -9,6 +9,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def key_expired(api_key) -> bool:
+    """expires_at is a naive UTC column (the driver returns it without tzinfo); comparing it with an
+    aware now() raised TypeError, so any key with an expiry turned into a 500."""
+    exp = api_key.expires_at
+    if exp is None:
+        return False
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    return exp < datetime.now(timezone.utc)
+
+
 class SecurityManager:
     """HMAC signing, RBAC, and API key management"""
     
@@ -69,7 +80,7 @@ class SecurityManager:
             return None
         
         # Check expiration
-        if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
+        if key_expired(api_key):
             return None
         
         # Update last used
