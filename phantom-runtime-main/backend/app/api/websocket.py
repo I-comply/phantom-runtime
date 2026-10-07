@@ -91,6 +91,7 @@ class ConnectionManager:
         self.connections: List[tuple] = []  # (websocket, Principal)
         self.buffers: Dict[str, List[Dict[str, Any]]] = {}  # per tenant
         self.max_buffer_size = 100
+        self.loop = None  # the server's event loop, recorded when a client connects
 
     def count_for(self, principal: Principal) -> int:
         if principal.platform:
@@ -139,6 +140,7 @@ async def websocket_events(websocket: WebSocket):
     principal = await _authenticate(websocket)
     if principal is None or not await manager.connect(websocket, principal):
         return
+    manager.loop = asyncio.get_running_loop()
     verified = time.monotonic()
     try:
         while True:
@@ -249,3 +251,17 @@ async def broadcast_event(event_data: Dict[str, Any], tenant_id: str):
         "timestamp": datetime.utcnow().isoformat(),
         "data": event_data
     }, str(tenant_id))
+
+
+def publish_event(event_data: Dict[str, Any], tenant_id) -> None:
+    """Push a "new_event" to a workspace's clients from synchronous code (the write routes run in a
+    thread pool). Fire-and-forget: it never blocks the write and never raises. Only a summary is sent
+    (ids and type, not the payload); clients fetch the rest through the normal, authorised endpoints.
+    No client has connected yet means no loop and nothing to deliver."""
+    loop = manager.loop
+    if loop is None or loop.is_closed():
+        return
+    try:
+        asyncio.run_coroutine_threadsafe(broadcast_event(event_data, str(tenant_id)), loop)
+    except Exception as e:  # pragma: no cover - a failed push must not fail the write
+        logger.error(f"publish_event failed: {e}")
