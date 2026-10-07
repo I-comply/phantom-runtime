@@ -22,6 +22,9 @@ Event fields: tenant_id, seq, event_id, ts, type, actor, correlation_id, causati
 `ATL_KEY_PROVIDER` = `file` (default; `env` if only `ATL_MASTER_KEY_HEX` is set) | `env` | `aws-kms` (`ATL_KMS_KEY_ID`, boto3 imported lazily) | `vault` (`ATL_VAULT_ADDR`, `ATL_VAULT_TOKEN`; KV v2 via `ATL_VAULT_PATH`/`ATL_VAULT_MOUNT`, or `ATL_VAULT_MODE=transit` with `ATL_VAULT_KEY`). Non-file modes never write plaintext keys to disk. `env` rotation: set `ATL_MASTER_KEY_HEX`, `ATL_MASTER_KEY_VERSION=n`, keep old keys in `ATL_MASTER_KEY_HEX_V<k>`.
 `python3 -m atl key rotate` creates a new master version and appends `key.rotated {master_version}` to every tenant ledger; events are MACed under the version in force before them, principals and anchors record the version they were issued under, so old data verifies as long as old master versions stay retrievable.
 
+## Audit sidecar
+`atl/sidecar.py`: `Sidecar(core.ledger, core.evidence, tenant)`; `install_http()` records every `http.client`/urllib call, `wrap_db(conn)` records DB-API statements and commit/rollback. Write-ahead and fail-closed (`audit.<http|db>.intent` is committed before the call; failure to record blocks it), then `audit.<kind>.result` with `causation_id`. Stores hashes/metadata only (no header values, query strings or params); `store_bodies=True` also puts raw bodies/statements in evidence. In-process only: does not see code that bypasses these libraries, and HTTP response digests cover bytes read via `read()`.
+
 ## Other
 `bakeoff/suite.py`: shared tamper suite for ledger comparison (ATL adapter included; POM/SAL adapters must be supplied). `Dockerfile`, `Dockerfile.executor`, `docker-compose.yml`; CI in `../.github/workflows/atl.yml` (verify + CycloneDX SBOM).
 
