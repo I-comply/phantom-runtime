@@ -131,6 +131,10 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 # with header X-Bootstrap-Key), then unset it. Every other write/execute endpoint
 # requires a real API key (X-API-Key) with the matching RBAC permission.
 PHANTOM_BOOTSTRAP_ADMIN_KEY=
+# Optional: the workspace id of your platform operator workspace. An `admin` key in THIS
+# workspace is a platform admin (sees across tenants, mints keys for any workspace). An
+# `admin` key anywhere else is admin of its own workspace only. Unset = no platform admins.
+PHANTOM_PLATFORM_TENANT_ID=
 ```
 `CORS_ORIGINS` must be an explicit origin list, not `*` — the app refuses to start
 with a wildcard because `allow_credentials=True` is already set and the two
@@ -146,8 +150,8 @@ key with `PHANTOM_BOOTSTRAP_ADMIN_KEY` set and `X-Bootstrap-Key` on the request
 (`POST /api/v3/security/api-keys`); unset the env var afterwards.
 
 **Tenant isolation on reads.** v3 (`/api/v3/events/chain/*`, `/api/v3/events/verify/*`)
-is scoped to the caller's own `tenant_id` column; `admin`-role keys see across
-tenants. v1/v2 (`/api/events`, `/api/state`, `/api/snapshots`, `/api/defi`) have
+is scoped to the caller's own `tenant_id` column; only a **platform admin** key sees across
+tenants (see below). v1/v2 (`/api/events`, `/api/state`, `/api/snapshots`, `/api/defi`) have
 no `tenant_id` column of their own — rather than a schema migration, scoping
 reuses the `EntityWorkspace` table (`backend/app/core/models_v2.py`), which
 already mapped `entity_id -> workspace_id` but was previously only written by
@@ -162,6 +166,21 @@ history. `Snapshot` and `DeFiEvent` already had their own `workspace_id`
 column (same story — present, just never filtered on); creation now stamps it
 from the caller's key rather than trusting a client-supplied value in the
 request body.
+
+**The `admin` role is per workspace.** It grants admin permissions (plugins, strategies, API keys)
+inside the key's own workspace and nothing in any other: reads, plugin/strategy execution and
+key minting are all scoped to that workspace. A **platform admin** is an `admin` key that belongs
+to the workspace named by `PHANTOM_PLATFORM_TENANT_ID`; only it sees across tenants or mints keys
+for other workspaces. The one-time bootstrap key can still mint keys for any workspace.
+
+**WebSockets** (`/ws/events`, `/ws/metrics`) require an API key with `events:read`, sent as the
+first message: `{"type": "auth", "api_key": "..."}` (a key in the URL would end up in logs). The
+server answers `{"type": "auth_ok"}`, or `auth_error` and closes with code 4401 (also after 5 s
+with no auth message). Metrics and events are scoped to the key's workspace; a platform admin sees
+global figures. Connections are capped (200 total, 10 per key) and a revoked key is dropped within
+a minute. The `websockets` package is pinned in `requirements.txt`: without it uvicorn answers every
+WebSocket upgrade with 404 and neither endpoint ever worked in the Docker image. The frontend takes
+the key from the field in its header (stored in localStorage) and sends it on REST calls and sockets.
 
 ## Plugin / strategy code execution
 

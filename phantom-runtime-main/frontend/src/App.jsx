@@ -5,12 +5,14 @@ import StateViewer from './components/StateViewer'
 import StrategyMarketplace from './components/StrategyMarketplace'
 import PerformanceDashboard from './components/PerformanceDashboard'
 import { useWebSocket } from './hooks/useWebSocket'
+import { getApiKey, setApiKey } from './auth'
 import './App.css'
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedEntity, setSelectedEntity] = useState('')
-  const { events, metrics, isConnected } = useWebSocket()
+  const { events, metrics, isConnected, authState } = useWebSocket()
+  const [keyInput, setKeyInput] = useState('')
 
   return (
     <div className="app-container">
@@ -36,10 +38,37 @@ function App() {
               {/* System Status */}
               <div className="flex items-center gap-2">
                 <div className={`status-${isConnected ? 'online' : 'offline'}`}></div>
-                <span className="text-sm text-gray-400">
-                  {isConnected ? 'Live Feed Active' : 'Reconnecting...'}
+                <span className="text-sm text-gray-400" data-testid="feed-status">
+                  {authState === 'missing' && 'Enter an API key'}
+                  {authState === 'rejected' && 'API key rejected'}
+                  {(authState === 'pending' || authState === 'ok') && (isConnected ? 'Live Feed Active' : 'Connecting...')}
                 </span>
               </div>
+
+              {/* API key: sent as X-API-Key on REST calls and as the first WebSocket message */}
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(e) => { e.preventDefault(); setApiKey(keyInput); setKeyInput('') }}
+              >
+                <input
+                  type="password"
+                  autoComplete="off"
+                  value={keyInput}
+                  onChange={(e) => setKeyInput(e.target.value)}
+                  placeholder={getApiKey() ? 'API key saved' : 'API key'}
+                  aria-label="API key"
+                  className="px-2 py-1 text-sm rounded bg-gray-800/50 border border-gray-700/50 text-gray-200"
+                  data-testid="api-key-input"
+                />
+                <button type="submit" className="px-3 py-1 text-sm rounded border border-cyan-500/40 text-cyan-400" data-testid="api-key-save">
+                  Save
+                </button>
+                {getApiKey() && (
+                  <button type="button" onClick={() => setApiKey('')} className="px-3 py-1 text-sm rounded border border-gray-700/50 text-gray-400" data-testid="api-key-clear">
+                    Clear
+                  </button>
+                )}
+              </form>
 
               {/* Performance Metrics */}
               <div className="flex items-center gap-4 px-4 py-2 glass-card">

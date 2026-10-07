@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Dict, Any
 from app.core.database import get_db
 from app.core.event_store import EventStore
-from app.core.deps import require_permission, is_admin
+from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v3 import APIKey
 from datetime import datetime
 
@@ -57,7 +57,7 @@ def get_entity_events(
     """Get all events for a specific entity. 404s (not an empty list) if the
     caller's workspace has no link to this entity, so "no access" is never
     indistinguishable from "entity exists but has no events"."""
-    if not is_admin(api_key_obj, db) and not EventStore.entity_in_workspace(
+    if not is_platform_admin(api_key_obj, db) and not EventStore.entity_in_workspace(
         db, entity_id, str(api_key_obj.tenant_id)
     ):
         raise HTTPException(status_code=404, detail="entity not found")
@@ -72,6 +72,6 @@ def get_all_events(
 ):
     """Get recent events across all entities in the caller's workspace
     (unscoped — all workspaces — for admin keys)."""
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     events = EventStore.get_all_events(db=db, limit=limit, workspace_id=workspace_id)
     return events

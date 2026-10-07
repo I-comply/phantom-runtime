@@ -83,7 +83,7 @@ def test_plugin_create_requires_auth(client):
 
 # ---- RBAC / tenant isolation: v3 events ----
 
-def test_v3_tenant_isolation_on_shared_entity_id(client, bootstrap_key, workspace, admin_key):
+def test_v3_tenant_isolation_on_shared_entity_id(client, bootstrap_key, workspace, admin_key, platform_key):
     entity = eid()
     ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
     key_a = mint_key(client, admin_key, workspace["id"], name="a")
@@ -98,8 +98,11 @@ def test_v3_tenant_isolation_on_shared_entity_id(client, bootstrap_key, workspac
     assert chain_b["chain_length"] == 1
     assert chain_b["events"][0]["payload"]["owner"] == "B"
 
-    chain_admin = client.get(f"/api/v3/events/chain/{entity}", headers={"X-API-Key": admin_key}).json()
-    assert chain_admin["chain_length"] >= 2  # admin sees across tenants
+    chain_platform = client.get(f"/api/v3/events/chain/{entity}", headers={"X-API-Key": platform_key}).json()
+    assert chain_platform["chain_length"] >= 2  # a platform admin sees across tenants
+    # an ordinary workspace admin (admin_key belongs to the same workspace as key_a) sees only its own
+    chain_ws_admin = client.get(f"/api/v3/events/chain/{entity}", headers={"X-API-Key": admin_key}).json()
+    assert chain_ws_admin["chain_length"] == 1
 
 
 # ---- RBAC / tenant isolation: v1 events + state (via EntityWorkspace) ----

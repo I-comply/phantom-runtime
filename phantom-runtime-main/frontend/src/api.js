@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { installAuth } from './auth'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001'
 
@@ -8,6 +9,8 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+installAuth(api)
 
 export const eventsAPI = {
   createEvent: (data) => api.post('/api/events/', data),

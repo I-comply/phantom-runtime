@@ -44,11 +44,28 @@ def admin_key(client, bootstrap_key, workspace):
     return r.json()["key"]
 
 
+@pytest.fixture
+def platform_key(client, bootstrap_key, monkeypatch):
+    """An admin key in a dedicated platform workspace, which PHANTOM_PLATFORM_TENANT_ID names for the
+    duration of the test. Only this key (not a per-workspace admin) sees across tenants."""
+    ws = client.post("/api/workspaces/", json={"name": f"platform-{uuid.uuid4().hex[:8]}"}).json()
+    r = client.post(
+        "/api/v3/security/api-keys",
+        json={"tenant_id": ws["id"], "role": "admin", "name": "platform"},
+        headers={"X-Bootstrap-Key": bootstrap_key},
+    )
+    assert r.status_code == 200, r.text
+    monkeypatch.setenv("PHANTOM_PLATFORM_TENANT_ID", ws["id"])
+    return r.json()["key"]
+
+
 def mint_key(client, admin_key, workspace_id, role="agent", name=None):
+    """Mint a key for any workspace with the bootstrap key (a per-workspace admin key can only mint
+    for its own workspace). `admin_key` is accepted for call-site compatibility and ignored."""
     r = client.post(
         "/api/v3/security/api-keys",
         json={"tenant_id": workspace_id, "role": role, "name": name or f"{role}-{uuid.uuid4().hex[:6]}"},
-        headers={"X-API-Key": admin_key},
+        headers={"X-Bootstrap-Key": os.environ["PHANTOM_BOOTSTRAP_ADMIN_KEY"]},
     )
     assert r.status_code == 200, r.text
     return r.json()["key"]

@@ -49,12 +49,12 @@ def test_process_queue_only_touches_the_callers_tenant(client, admin_key, worksp
     assert client.post("/api/v3/events/process-queue", headers={"X-API-Key": key_a}).json()["processed_count"] == 1
 
 
-def test_admin_processes_every_tenants_queue(client, admin_key, workspace):
+def test_platform_admin_processes_every_tenants_queue(client, admin_key, workspace, platform_key):
     key_a, key_b = _tenants(client, admin_key, workspace)
     ea, eb = eid(), eid()
     _queue(client, key_a, ea)
     _queue(client, key_b, eb)
-    assert client.post("/api/v3/events/process-queue", headers={"X-API-Key": admin_key}).json()["processed_count"] >= 2
+    assert client.post("/api/v3/events/process-queue", headers={"X-API-Key": platform_key}).json()["processed_count"] >= 2
     assert _chain(client, key_a, ea) == 1 and _chain(client, key_b, eb) == 1
 
 

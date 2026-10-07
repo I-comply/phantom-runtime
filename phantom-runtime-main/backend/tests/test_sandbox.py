@@ -61,8 +61,15 @@ def test_plugin_execute_requires_auth(client, admin_key):
     assert client.post(f"/api/plugins/{pid}/execute", json={"entity_id": eid()}).status_code == 401
 
 
+def _own_entity(client, key):
+    e = eid()
+    assert client.post("/api/events/", json={"entity_id": e, "event_type": "init", "payload": {"x": 1}},
+                       headers={"X-API-Key": key}).status_code == 200
+    return e
+
+
 def test_plugin_execute_sandboxed_happy_path(client, admin_key):
-    entity = eid()
+    entity = _own_entity(client, admin_key)
     plg = client.post("/api/plugins/", json={"name": "p", "code": 'result={"ok": config.get("x", 1)}'},
                       headers={"X-API-Key": admin_key})
     pid = plg.json()["id"]
@@ -75,7 +82,7 @@ def test_sandbox_escape_attempt_does_not_get_a_shell(client, admin_key):
     os via subclass-walk + bare except). What must hold is containment: the
     isolated-subprocess sandbox (unprivileged uid, RLIMIT_NPROC=0) blocks the
     fork that os.popen() needs, so the escape never yields a shell."""
-    entity = eid()
+    entity = _own_entity(client, admin_key)
     evil = client.post("/api/plugins/", json={"name": "evil", "code": ESCAPE_PAYLOAD}, headers={"X-API-Key": admin_key})
     pid = evil.json()["id"]
     exe = client.post(f"/api/plugins/{pid}/execute", json={"entity_id": entity}, headers={"X-API-Key": admin_key})
