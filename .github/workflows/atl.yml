@@ -21,6 +21,7 @@ jobs:
         with: { python-version: "${{ matrix.python }}" }
       - name: Pull pinned sandbox image (enables Docker executor tests)
         run: docker pull "$(python3 -c 'from atl.executor import DEFAULT_IMAGE as i; print(i)')"
+      - run: pip install py_ecc
       - run: ./verify.sh
       - run: python3 -m harness.run_agents --tenants 2 --agents 4 --out /tmp/harness
   security:
