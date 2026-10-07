@@ -19,7 +19,7 @@ Isolation properties, and their limits:
   in env) are what actually bound the damage if that escape is used.
 - No network: nothing here binds a socket, but rlimits don't block outbound
   connections by themselves. For a stronger boundary, run this script inside a
-  `--network none` container per call (see agent-trust-layer/atl/executor.py in
+  `--network none` container per call (see atl/executor.py in https://github.com/I-comply/Agent-Trust-Layer, in
   this repo for a reference implementation of that pattern) rather than as a bare
   subprocess, same as that project's own README caveats for its own worker.
 """

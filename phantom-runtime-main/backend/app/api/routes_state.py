@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.event_store import EventStore
 from app.core.snapshot_manager import SnapshotManager
 from app.core.reconstructor_v2 import StateReconstructorV2
-from app.core.deps import require_permission, is_admin
+from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v3 import APIKey
 
 router = APIRouter(prefix="/api/state", tags=["state"])
@@ -18,6 +18,8 @@ class StateResponse(BaseModel):
     runtime_status: str
     snapshot_used: bool = False
     snapshot_number: Optional[int] = None
+    # 2: balances and event_history amounts are canonical decimal strings (1 had JSON floats)
+    schema_version: int = 2
 
 class AgentRunRequest(BaseModel):
     entity_id: str
@@ -32,7 +34,7 @@ def _check_access(api_key_obj: APIKey, db: Session, entity_id: str):
     """404s (not a silent empty result) when the caller's workspace has no link
     to this entity — see EventStore's module docstring for why v1 entities are
     scoped through EntityWorkspace rather than a tenant_id column."""
-    if not is_admin(api_key_obj, db) and not EventStore.entity_in_workspace(
+    if not is_platform_admin(api_key_obj, db) and not EventStore.entity_in_workspace(
         db, entity_id, str(api_key_obj.tenant_id)
     ):
         raise HTTPException(status_code=404, detail="entity not found")
@@ -51,7 +53,7 @@ def get_entity_state(
         raise HTTPException(status_code=404, detail="No events found for entity")
 
     # Try snapshot-optimized reconstruction
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     snapshot = SnapshotManager.get_latest_snapshot(db, entity_id, workspace_id)
 
     if snapshot:
@@ -84,7 +86,7 @@ def get_all_entities(
     api_key_obj: APIKey = Depends(require_permission("events", "read")),
 ):
     """Get list of entity IDs in the caller's workspace (unscoped for admin keys)"""
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     entity_ids = EventStore.get_all_entity_ids(db=db, workspace_id=workspace_id)
     return entity_ids
 
@@ -102,7 +104,7 @@ def agent_run(
         raise HTTPException(status_code=404, detail="Entity not found")
 
     # Use snapshot-optimized reconstruction
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     state = SnapshotManager.reconstruct_with_snapshot(db, request.entity_id, workspace_id)
 
     # Perform ephemeral computation

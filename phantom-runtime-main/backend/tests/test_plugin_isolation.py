@@ -2,13 +2,13 @@
 running another tenant's plugin, no running a plugin on another tenant's entity."""
 import uuid
 
-from .conftest import mint_key, eid
+from .conftest import mint_key, eid, make_ws
 
 CODE = 'result={"n": len(state)}'
 
 
 def _two_tenants(client, admin_key, workspace):
-    ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    ws2 = make_ws(client)
     return (mint_key(client, admin_key, workspace["id"], name="a"), mint_key(client, admin_key, ws2["id"], name="b"),
             workspace["id"], ws2["id"])
 

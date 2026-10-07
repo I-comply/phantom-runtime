@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.event_engine_v3 import EventEngineV3, AsyncEventPipeline
 from app.core.strategy_engine import StrategyEngine
 from app.core.security import SecurityManager, RBACMiddleware
-from app.core.deps import require_permission, require_api_key, is_admin
+from app.core.deps import require_permission, require_api_key, is_platform_admin
 from app.core.config import settings
 from app.core.models_v3 import APIKey
 from datetime import datetime
@@ -57,7 +57,7 @@ def get_event_chain(
 ):
     """Get complete event chain for entity. Scoped to the caller's own tenant
     unless the caller is an admin key (admins see across tenants)."""
-    tenant_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    tenant_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     events = EventEngineV3.get_entity_chain(db, entity_id, tenant_id)
     return {
         "entity_id": entity_id,
@@ -82,7 +82,7 @@ def verify_chain_integrity(
     api_key_obj: APIKey = Depends(require_permission("events", "read")),
 ):
     """Verify hash chain integrity. Same tenant scoping as /events/chain."""
-    tenant_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    tenant_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     is_valid = EventEngineV3.verify_chain_integrity(db, entity_id, tenant_id)
     return {
         "entity_id": entity_id,
@@ -124,7 +124,7 @@ def process_queue(
     items; admin keys process every tenant's (including legacy items queued without a tenant)."""
     batch_size = max(1, min(batch_size, 1000))
     count = AsyncEventPipeline.process_queue_batch(
-        db, batch_size, tenant_id=None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id))
+        db, batch_size, tenant_id=None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id))
     return {
         "processed_count": count
     }
@@ -178,7 +178,7 @@ def execute_strategy(
             strategy_id=strategy_id,
             entity_id=entity_id,
             emit_events=emit_events,
-            tenant_id=None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id),
+            tenant_id=None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id),
         )
     except LookupError:
         raise HTTPException(status_code=404, detail="strategy not found")
@@ -229,6 +229,10 @@ def create_api_key(
     if not authorized and x_api_key:
         api_key_obj = SecurityManager.verify_api_key(db, x_api_key)
         if api_key_obj and RBACMiddleware.check_permission(api_key_obj, db, "api_keys", "write"):
+            # A tenant admin mints keys for its own workspace only. Minting for another workspace
+            # (or a platform admin key) takes a platform admin key or the bootstrap key.
+            if str(api_key_obj.tenant_id) != str(request.tenant_id) and not is_platform_admin(api_key_obj, db):
+                raise HTTPException(status_code=403, detail="can only create keys for your own workspace")
             authorized = True
     if not authorized:
         raise HTTPException(status_code=401, detail="requires an API key with api_keys:write, or X-Bootstrap-Key")

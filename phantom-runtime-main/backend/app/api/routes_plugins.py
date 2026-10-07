@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List
 from app.core.database import get_db
 from app.core.plugin_engine import PluginEngine
 from app.core.snapshot_manager import SnapshotManager
-from app.core.deps import require_permission, is_admin
+from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v2 import Plugin
 from app.core.models_v3 import APIKey
 from app.api.routes_state import _check_access
@@ -46,7 +46,7 @@ def _get_plugin(db: Session, plugin_id: str, api_key_obj: APIKey) -> Plugin:
         raise HTTPException(status_code=404, detail="plugin not found")
     plugin = db.query(Plugin).filter(Plugin.id == pid).first()
     if plugin is None or (
-        not is_admin(api_key_obj, db) and str(plugin.workspace_id) != str(api_key_obj.tenant_id)
+        not is_platform_admin(api_key_obj, db) and str(plugin.workspace_id) != str(api_key_obj.tenant_id)
     ):
         raise HTTPException(status_code=404, detail="plugin not found")
     return plugin
@@ -62,7 +62,7 @@ def create_plugin(
     plugins:write as equivalent to granting arbitrary code execution, not a data-write."""
     # A plugin is owned by a workspace. An admin may create one for another workspace by naming it;
     # otherwise it belongs to the caller's own workspace. Never leave it ownerless.
-    owner = plugin.workspace_id if (plugin.workspace_id and is_admin(api_key_obj, db)) else str(api_key_obj.tenant_id)
+    owner = plugin.workspace_id if (plugin.workspace_id and is_platform_admin(api_key_obj, db)) else str(api_key_obj.tenant_id)
     created_plugin = PluginEngine.create_plugin(
         db=db,
         name=plugin.name,
@@ -88,7 +88,7 @@ def execute_plugin(
     workspace (admin keys are cross-tenant)."""
     plugin = _get_plugin(db, plugin_id, api_key_obj)
     _check_access(api_key_obj, db, request.entity_id)
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     try:
         # Get current state
         state = SnapshotManager.reconstruct_with_snapshot(db, request.entity_id, workspace_id)

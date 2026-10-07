@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from app.core.database import get_db
 from app.core.defi_manager import DeFiEventManager, AsyncPipeline
-from app.core.deps import require_permission, is_admin
+from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v3 import APIKey
 from datetime import datetime
 
@@ -61,7 +61,7 @@ def get_portfolio(
 ):
     """Get portfolio summary for an entity, scoped to the caller's own
     workspace (unscoped for admin keys)"""
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     portfolio = DeFiEventManager.get_entity_portfolio(db, entity_id, workspace_id)
     return portfolio
 
