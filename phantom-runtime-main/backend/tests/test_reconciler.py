@@ -122,3 +122,80 @@ def test_background_thread_starts_and_stops():
         threading.Event().wait(0.01)
     d.stop()
     assert a.digest() == b.digest()
+
+
+# --- merge limits (peer snapshots are untrusted) ---
+
+def snap_with(**obj_overrides):
+    return {"clock": {"x": 1}, "objects": obj_overrides}
+
+
+def test_rejects_oversized_snapshots():
+    from app.reconciler import Limits
+    r = Replica("a", Limits(max_objects=2, max_elements=3, max_snapshot_bytes=500))
+    many = {f"k{i}": GCounter({"x": 1}).to_dict() for i in range(3)}
+    with pytest.raises(ValueError):
+        r.merge_snapshot(snap_with(**many))
+    with pytest.raises(ValueError):
+        r.merge_snapshot(snap_with(s=GCounter({f"n{i}": 1 for i in range(4)}).to_dict()))
+    big = ORSet({(f"e{i}", "t") for i in range(3)})
+    big.add("x" * 600, "t")
+    with pytest.raises(ValueError):
+        r.merge_snapshot(snap_with(s=big.to_dict()))
+    assert r.get("k0") is None and r.digest() == Replica("b").digest()
+
+
+def test_rejects_far_future_lww_but_accepts_current():
+    import time
+    r = Replica("a")
+    with pytest.raises(ValueError):
+        r.merge_snapshot(snap_with(v=LWWRegister("pwn", 32503680000000, "x").to_dict()))  # year 3000
+    assert r.get("v") is None
+    now = int(time.time() * 1000)
+    assert r.merge_snapshot(snap_with(v=LWWRegister("ok", now, "x").to_dict()))
+    assert r.get("v").value == "ok"
+
+
+def test_rejects_huge_or_invalid_counters_and_clock():
+    r = Replica("a")
+    for bad in (2 ** 63, -1, True, "5", 1.5):
+        with pytest.raises(ValueError):
+            r.merge_snapshot(snap_with(c={"type": "gcounter", "counts": {"x": bad}}))
+        with pytest.raises(ValueError):
+            r.merge_snapshot({"clock": {"x": bad}, "objects": {}})
+    with pytest.raises(ValueError):
+        r.merge_snapshot({"clock": {"x": 10 ** 12}, "objects": {}})  # jump beyond max_clock_jump
+    assert r.clock == VectorClock()
+
+
+def test_type_conflict_keeps_local_and_is_atomic():
+    a, b = Replica("a"), Replica("b")
+    a.mutate("k", GCounter, lambda c: c.increment("a"))
+    b.mutate("aaa", GCounter, lambda c: c.increment("b"))   # would merge cleanly
+    b.mutate("k", ORSet, lambda s: s.add("x", "t"))
+    before = a.digest()
+    with pytest.raises(ValueError):
+        a.merge_snapshot(b.snapshot())
+    assert a.digest() == before and a.get("aaa") is None and a.get("k").kind == "gcounter"
+
+
+@pytest.mark.parametrize("snap", [None, [], {}, {"clock": {}, "objects": []},
+                                  {"clock": {}, "objects": {"c": {"type": "orset", "adds": "x", "removes": []}}},
+                                  {"clock": {}, "objects": {"c": {"type": "lww", "ts": 1}}},
+                                  {"clock": {}, "objects": {"c": {"type": "pncounter"}}}])
+def test_malformed_snapshots_raise_valueerror_only(snap):
+    with pytest.raises(ValueError):
+        Replica("a").merge_snapshot(snap)
+
+
+def test_malformed_snapshot_does_not_abort_cycle():
+    a, b, c = Replica("a"), Replica("b"), Replica("c")
+    cnt(c)
+    class Bad(Link):
+        def snapshot(self):
+            return {"clock": {"b": 2 ** 63}, "objects": {}}
+    bad = Bad(b)
+    b.mutate("c", GCounter, lambda x: x.increment("b"))  # makes b's status differ so a fetches
+    ev = ReconcilerDaemon(a, [bad, Link(c)]).tick()
+    assert [e.merged for e in ev] == [False, True]
+    assert a.get("c").value == 1

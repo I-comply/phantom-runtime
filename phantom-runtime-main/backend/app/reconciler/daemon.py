@@ -88,7 +88,7 @@ class ReconcilerDaemon:
                 merged = True
             except PeerError:
                 self._down[p.node_id] = True
-            except (ValueError, KeyError) as e:
+            except (ValueError, KeyError, TypeError) as e:
                 log.error("rejecting snapshot from %s: %s", p.node_id, e)
             ev = DriftEvent(p.node_id, kind, healed, merged, self.consensus_clock.to_dict())
             log.warning("drift %s", ev)
