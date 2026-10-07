@@ -25,6 +25,8 @@ import time
 import uuid
 from pathlib import Path
 
+from . import ramdisk_overlay
+
 _SOURCE_WORKER = Path(__file__).with_name("sandbox_worker.py")
 DEFAULT_TIMEOUT_S = 5
 
@@ -96,27 +98,28 @@ def _run_subprocess(payload: bytes, timeout: float) -> dict:
 
 def _run_docker(payload: bytes, timeout: float) -> dict:
     """Docker driver: one throwaway container per call, --network none,
-    read-only rootfs, all caps dropped, unprivileged user — the same pattern as
-    agent-trust-layer/atl/executor.py's DockerExecutor in this repo. Fails
-    closed: any Docker error is a sandbox failure, never a silent fallback to
+    read-only rootfs with RAM-only (tmpfs) write layers that are shredded
+    on exit (see ramdisk_overlay.py; SANDBOX_RAMDISK=0 disables), all caps dropped,
+    unprivileged user — the same pattern as agent-trust-layer/atl/executor.py's
+    DockerExecutor in this repo. Fails closed: any Docker error is a sandbox failure, never a silent fallback to
     the plain-subprocess driver."""
     image = os.environ.get("SANDBOX_DOCKER_IMAGE", DEFAULT_IMAGE)
     name = f"phantom-sandbox-{uuid.uuid4().hex[:16]}"
+    flags, command = ramdisk_overlay.docker_args(WORKER, SANDBOX_UID, SANDBOX_GID)
     argv = [
         "docker", "run", "--rm", "-i", "--name", name,
-        "--pull", "never", "--network", "none", "--read-only", "--cap-drop", "ALL",
+        "--pull", "never", "--network", "none", "--cap-drop", "ALL",
         "--security-opt", "no-new-privileges", "--pids-limit", "32",
-        "--memory", "128m", "--memory-swap", "128m", "--cpus", "1",
+        "--memory", "128m", "--cpus", "1",
         "--user", f"{SANDBOX_UID}:{SANDBOX_GID}",
-        "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=8m",  # nosec B108
-        "-v", f"{WORKER}:/sandbox/sandbox_worker.py:ro",
+        *flags,
         "-w", "/sandbox", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "HOME=/tmp",
-        image, "python", "-I", "sandbox_worker.py",
+        image, *command,
     ]
     try:
         proc = subprocess.run(argv, input=payload, capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=30)
+        subprocess.run(ramdisk_overlay.host_cleanup_args(name), capture_output=True, timeout=30)
         return {"ok": False, "error": "timeout"}
     except FileNotFoundError as e:
         return {"ok": False, "error": f"docker unavailable: {e}"}

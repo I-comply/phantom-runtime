@@ -82,3 +82,52 @@ def test_sandbox_escape_attempt_does_not_get_a_shell(client, admin_key):
     assert exe.status_code == 200, exe.text
     result = exe.json().get("result", {})
     assert "shelled_out" not in result, f"sandbox escape got a shell: {result}"
+
+
+def test_ramdisk_overlay_args_all_writable_paths_are_tmpfs():
+    from pathlib import Path
+    from app.core import ramdisk_overlay as r
+    flags, cmd = r.docker_args(Path("/tmp/w.py"), 65534, 65534)
+    joined = " ".join(flags)
+    assert "--read-only" in flags and "--log-driver" in flags and "none" in flags
+    assert "--memory-swappiness" in flags
+    for p in r.RAM_MOUNTS:
+        assert f"{p}:rw,noexec,nosuid,nodev," in joined
+    assert cmd == ["python", "-I", "sandbox_shred.py"]
+    assert all(f.endswith(":ro") for f in flags if ":/sandbox/sandbox_" in f)
+
+
+def test_ramdisk_overlay_disabled_falls_back(monkeypatch):
+    from pathlib import Path
+    from app.core import ramdisk_overlay as r
+    monkeypatch.setenv("SANDBOX_RAMDISK", "0")
+    _, cmd = r.docker_args(Path("/tmp/w.py"), 1, 1)
+    assert cmd == ["python", "-I", "sandbox_worker.py"]
+
+
+def test_ramdisk_audit_mounts():
+    from app.core.ramdisk_overlay import audit_mounts
+    ok = [{"Type": "tmpfs"}, {"Type": "bind", "RW": False}]
+    assert audit_mounts(ok) == []
+    assert len(audit_mounts(ok + [{"Type": "volume"}, {"Type": "bind", "RW": True}])) == 2
+
+
+def test_shred_tree_removes_files(tmp_path):
+    from app.core.sandbox_shred import shred_tree
+    (tmp_path / "d").mkdir()
+    (tmp_path / "d" / "a").write_bytes(b"secret" * 1000)
+    (tmp_path / "b").write_bytes(b"x")
+    assert shred_tree(str(tmp_path)) == 2
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_shred_entrypoint_passes_through_worker_io(tmp_path):
+    import json, os, subprocess, sys
+    from app.core.sandbox import _SOURCE_WORKER
+    scratch = tmp_path / "ram"; scratch.mkdir(); (scratch / "leak").write_text("s")
+    shred = _SOURCE_WORKER.with_name("sandbox_shred.py")
+    proc = subprocess.run([sys.executable, "-I", str(shred)],
+                          input=json.dumps({"code": "result={'v': 1}", "locals": {}}).encode(),
+                          capture_output=True, env={"SANDBOX_SHRED_DIRS": str(scratch)})
+    assert json.loads(proc.stdout)["result"] == {"v": 1}
+    assert list(scratch.iterdir()) == []
