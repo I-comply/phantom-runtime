@@ -19,5 +19,11 @@ class Settings:
     # Unset in production once an admin key exists; treat it like any other secret.
     BOOTSTRAP_ADMIN_KEY: str | None = os.getenv("PHANTOM_BOOTSTRAP_ADMIN_KEY")
 
+    # Cross-instance state reconciliation (app/reconciler). Off by default; with no
+    # transport installed it runs with zero peers and does nothing.
+    RECONCILER_ENABLED: bool = os.getenv("RECONCILER_ENABLED", "false").lower() in ("1", "true", "yes")
+    RECONCILER_NODE_ID: str | None = os.getenv("RECONCILER_NODE_ID")
+    RECONCILER_INTERVAL: float = float(os.getenv("RECONCILER_INTERVAL", "5"))
+
 
 settings = Settings()
