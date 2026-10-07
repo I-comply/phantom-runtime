@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from app.core.database import get_db
-from app.core.multi_tenant import MultiTenantManager
+from app.core.multi_tenant import MultiTenantManager, EntityAlreadyClaimed
 from app.core.models_v2 import Workspace
 from datetime import datetime
 
@@ -68,11 +68,14 @@ def link_entity_to_workspace(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    link = MultiTenantManager.link_entity_to_workspace(
-        db=db,
-        workspace_id=str(workspace.id),
-        entity_id=request.entity_id
-    )
+    try:
+        link = MultiTenantManager.link_entity_to_workspace(
+            db=db,
+            workspace_id=str(workspace.id),
+            entity_id=request.entity_id
+        )
+    except EntityAlreadyClaimed:
+        raise HTTPException(status_code=409, detail="entity is already linked to another workspace")
     return {"status": "linked", "entity_id": request.entity_id}
 
 @router.get("/me/entities")

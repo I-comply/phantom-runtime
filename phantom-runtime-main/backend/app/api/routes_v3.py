@@ -168,15 +168,20 @@ def execute_strategy(
     entity_id: str,
     emit_events: bool = True,
     db: Session = Depends(get_db),
-    _auth: APIKey = Depends(require_permission("strategies", "execute")),
+    api_key_obj: APIKey = Depends(require_permission("strategies", "execute")),
 ):
-    """Execute strategy on entity. Requires an API key with strategies:execute."""
-    execution = StrategyEngine.execute_strategy(
-        db=db,
-        strategy_id=strategy_id,
-        entity_id=entity_id,
-        emit_events=emit_events
-    )
+    """Execute strategy on entity. Requires an API key with strategies:execute. A non-admin key can
+    only run its own workspace's strategies, over its own workspace's events (404 otherwise)."""
+    try:
+        execution = StrategyEngine.execute_strategy(
+            db=db,
+            strategy_id=strategy_id,
+            entity_id=entity_id,
+            emit_events=emit_events,
+            tenant_id=None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id),
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="strategy not found")
     
     return {
         "execution_id": str(execution.id),
@@ -243,8 +248,11 @@ def create_api_key(
     }
 
 @router.get("/security/roles")
-def list_roles(db: Session = Depends(get_db)):
-    """List available RBAC roles"""
+def list_roles(
+    db: Session = Depends(get_db),
+    _auth: APIKey = Depends(require_permission("api_keys", "read")),
+):
+    """List available RBAC roles (admin keys only: this exposes the permission model)"""
     from app.core.models_v3 import Role
     roles = db.query(Role).all()
     return {

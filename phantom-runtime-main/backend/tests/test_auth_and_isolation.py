@@ -175,3 +175,34 @@ def test_defi_tenant_isolation_and_entity_auto_claim(client, admin_key, workspac
     # entity was never posted via /api/events — defi_manager must have claimed it anyway
     assert client.get(f"/api/events/entity/{entity}", headers={"X-API-Key": key_a}).status_code == 200
     assert client.get(f"/api/events/entity/{entity}", headers={"X-API-Key": key_b}).status_code == 404
+
+
+# ---- entity linking must not let one tenant claim another tenant's entity ----
+
+def test_cannot_link_another_tenants_entity_to_my_workspace(client, admin_key, workspace):
+    ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    key_a = mint_key(client, admin_key, workspace["id"], name="a")
+    key_b = mint_key(client, admin_key, ws2["id"], name="b")
+    entity = eid()
+    assert client.post("/api/events/", json={"entity_id": entity, "event_type": "init", "payload": {"secret": "A"}},
+                       headers={"X-API-Key": key_a}).status_code == 200
+    assert client.get(f"/api/events/entity/{entity}", headers={"X-API-Key": key_b}).status_code == 404
+
+    link = client.post("/api/workspaces/me/entities", json={"entity_id": entity}, headers={"X-API-Key": ws2["api_key"]})
+    assert link.status_code == 409
+
+    assert client.get(f"/api/events/entity/{entity}", headers={"X-API-Key": key_b}).status_code == 404
+    assert client.get(f"/api/state/{entity}", headers={"X-API-Key": key_b}).status_code == 404
+    assert client.get(f"/api/events/entity/{entity}", headers={"X-API-Key": key_a}).status_code == 200
+
+
+def test_linking_your_own_or_an_unclaimed_entity_still_works_and_is_idempotent(client, workspace):
+    entity = eid()
+    for _ in range(2):
+        r = client.post("/api/workspaces/me/entities", json={"entity_id": entity}, headers={"X-API-Key": workspace["api_key"]})
+        assert r.status_code == 201
+    assert entity in client.get("/api/workspaces/me/entities", headers={"X-API-Key": workspace["api_key"]}).json()["entities"]
+
+
+def test_roles_listing_requires_auth(client):
+    assert client.get("/api/v3/security/roles").status_code == 401
