@@ -42,7 +42,8 @@ class StateReconstructorV2:
             state.clear()
         
         # DeFi event types
-        elif event_type in ["deposit", "withdraw", "trade", "transfer", "stake", "unstake", "claim_rewards"]:
+        elif event_type in ["deposit", "withdraw", "trade", "transfer", "stake", "unstake", "claim_rewards",
+                            "lock_stake", "release_stake"]:
             # Apply financial event logic
             StateReconstructorV2._apply_defi_event(state, event_type, payload)
         
@@ -73,6 +74,14 @@ class StateReconstructorV2:
 
         elif event_type in ("withdraw", "transfer"):  # transfer: the out leg
             bal[asset] = money.fmt(money.sub(money.lenient(bal.get(asset, 0)), amount))
+
+        elif event_type in ("lock_stake", "release_stake"):
+            if not isinstance(state.get("staked"), dict):
+                state["staked"] = {}
+            sign = 1 if event_type == "lock_stake" else -1
+            bal[asset] = money.fmt(money.sub(money.lenient(bal.get(asset, 0)), amount * sign))
+            state["staked"][asset] = money.fmt(
+                money.add(money.lenient(state["staked"].get(asset, 0)), amount * sign))
 
         elif event_type == "trade":
             from_asset = payload.get("from_asset")

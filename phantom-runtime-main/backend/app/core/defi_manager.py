@@ -14,7 +14,8 @@ class DeFiEventManager:
     
     SUPPORTED_EVENT_TYPES = [
         "deposit", "withdraw", "trade", "transfer",
-        "stake", "unstake", "claim_rewards"
+        "stake", "unstake", "claim_rewards",
+        "lock_stake", "release_stake"
     ]
     
     @staticmethod
@@ -64,6 +65,11 @@ class DeFiEventManager:
         # link here too — otherwise a DeFi-only entity_id never gets linked and
         # the v1 event/state/snapshot endpoints 404 it even for its own creator.
         EventStore.claim_entity(db, entity_id, workspace_id)
+        try:
+            EventStore.check_money_rules(db, entity_id, event_type, payload)
+        except money.AmountError as e:
+            db.rollback()
+            raise ValueError(str(e))
         db.flush()  # Get ID without committing
 
         # Create DeFi event
@@ -97,6 +103,7 @@ class DeFiEventManager:
         # Exact decimal arithmetic; balances and amounts are canonical decimal strings.
         from app.core import money
         balances = {}
+        staked = {}
         transactions = []
 
         def bal(asset):
@@ -110,6 +117,10 @@ class DeFiEventManager:
                 balances[asset] = money.fmt(money.add(bal(asset), amount))
             elif event.event_type in ("withdraw", "transfer"):
                 balances[asset] = money.fmt(money.sub(bal(asset), amount))
+            elif event.event_type in ("lock_stake", "release_stake"):
+                sign = 1 if event.event_type == "lock_stake" else -1
+                balances[asset] = money.fmt(money.sub(bal(asset), amount * sign))
+                staked[asset] = money.fmt(money.add(money.lenient(staked.get(asset, 0)), amount * sign))
             elif event.event_type == "trade":
                 # Handle trade event_metadata
                 meta = event.event_metadata or {}
@@ -134,6 +145,7 @@ class DeFiEventManager:
         return {
             "entity_id": entity_id,
             "balances": balances,
+            "staked": staked,
             "transaction_count": len(transactions),
             "recent_transactions": transactions[-10:]
         }
