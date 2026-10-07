@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
@@ -7,6 +8,7 @@ from app.api import routes_workspaces, routes_snapshots, routes_plugins, routes_
 from app.api import routes_v3
 from app.api import websocket
 from app.core.security import SecurityManager
+from app.core.reconciler import ReconciliationDaemon, ReplicaState
 import logging
 
 # Initialize database (creates all tables including v3)
@@ -19,7 +21,23 @@ try:
 finally:
     db.close()
 
+replica_state = ReplicaState(settings.RECONCILER_NODE_ID)
+# No network Peer transport exists yet, so the daemon starts with no peers.
+reconciler = ReconciliationDaemon(replica_state, [], interval=settings.RECONCILER_INTERVAL)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if settings.RECONCILER_ENABLED:
+        reconciler.start()
+    try:
+        yield
+    finally:
+        await reconciler.stop()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Phantom Finance - Next-Gen Event Runtime",
     version="3.0.0",
     description="Premium event-sourcing platform with hash-chained events, async pipeline, and strategy execution"
