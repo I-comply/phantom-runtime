@@ -7,6 +7,7 @@ from app.core.event_store import EventStore
 from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v3 import APIKey
 from app.core import money
+from app.api.websocket import publish_event
 from datetime import datetime
 
 router = APIRouter(prefix="/api/events", tags=["events"])
@@ -57,6 +58,8 @@ def create_event(
     except money.AmountError as e:
         db.rollback()
         raise HTTPException(status_code=422, detail=str(e))
+    publish_event({"id": stored_event.id, "entity_id": stored_event.entity_id,
+                   "event_type": stored_event.event_type, "version": "v1"}, api_key_obj.tenant_id)
     return stored_event
 
 @router.get("/entity/{entity_id}", response_model=list[EventResponse])

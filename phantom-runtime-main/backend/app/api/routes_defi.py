@@ -8,6 +8,8 @@ from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v3 import APIKey
 from datetime import datetime
 
+from app.api.websocket import publish_event
+
 router = APIRouter(prefix="/api/defi", tags=["defi"])
 
 class DeFiEventCreate(BaseModel):
@@ -49,6 +51,8 @@ def create_defi_event(
             metadata=event.metadata,
             workspace_id=str(api_key_obj.tenant_id),
         )
+        publish_event({"id": defi_event.core_event_id, "entity_id": defi_event.entity_id,
+                       "event_type": defi_event.event_type, "version": "v1"}, api_key_obj.tenant_id)
         return defi_event
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

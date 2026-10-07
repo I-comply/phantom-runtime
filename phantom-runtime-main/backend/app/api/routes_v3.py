@@ -8,6 +8,7 @@ from app.core.strategy_engine import StrategyEngine
 from app.core.security import SecurityManager, RBACMiddleware
 from app.core.deps import require_permission, require_api_key, is_platform_admin
 from app.core.config import settings
+from app.api.websocket import publish_event
 from app.core.models_v3 import APIKey
 from datetime import datetime, timedelta, timezone
 import uuid as _uuid
@@ -41,6 +42,9 @@ def create_event_v3(
         source=event.source,
         created_by=api_key_obj.name
     )
+    publish_event({"id": created_event.id, "entity_id": created_event.entity_id,
+                   "event_type": created_event.event_type, "block_index": created_event.block_index,
+                   "version": "v3"}, api_key_obj.tenant_id)
 
     return {
         "id": created_event.id,

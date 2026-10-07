@@ -130,3 +130,28 @@ def test_broadcast_reaches_only_the_events_tenant_and_platform_admins():
         return a.sent, b.sent, plat.sent
     a, b, plat = asyncio.run(run())
     assert len(a) == 1 and len(plat) == 1 and b == []
+
+
+def test_new_events_are_pushed_to_their_workspace_only(client, admin_key, workspace):
+    other = _ws(client)
+    key_a = mint_key(client, admin_key, workspace["id"])
+    key_b = mint_key(client, admin_key, other["id"])
+    with client.websocket_connect("/ws/events") as wa, client.websocket_connect("/ws/events") as wb:
+        _auth(wa, key_a)
+        assert wa.receive_json()["type"] == "auth_ok"
+        _auth(wb, key_b)
+        assert wb.receive_json()["type"] == "auth_ok"
+        e = eid()
+        assert client.post("/api/events/", json={"entity_id": e, "event_type": "update", "payload": {"x": 1}},
+                           headers={"X-API-Key": key_a}).status_code == 200
+        msg = wa.receive_json()
+        assert msg["type"] == "new_event" and msg["data"]["entity_id"] == e and msg["data"]["event_type"] == "update"
+        assert "payload" not in msg["data"]
+        wb.send_text("ping")  # B's next message is a heartbeat, not A's event
+        assert wb.receive_json()["type"] == "heartbeat"
+        assert client.post("/api/v3/events", json={"entity_id": eid(), "event_type": "x", "payload": {}},
+                           headers={"X-API-Key": key_a}).status_code == 200
+        assert wa.receive_json()["type"] == "new_event"
+        assert client.post("/api/defi/events", json={"entity_id": eid(), "event_type": "deposit", "asset": "USD", "amount": "1"},
+                           headers={"X-API-Key": key_a}).status_code in (200, 201)
+        assert wa.receive_json()["type"] == "new_event"
