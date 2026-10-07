@@ -98,6 +98,25 @@ class Core:
                                {"seq": a["seq"], "hash": a["hash"], "webhook": a["webhook"]})
         return a
 
+    def anchor_all(self):
+        """Anchor every tenant whose ledger has grown since its last anchor. Anchors commit to a
+        prefix of the ledger, so anything appended after the newest anchor can be silently truncated
+        by someone with database write access: run this on a schedule (atl serve --anchor-every) and
+        keep the anchors outside the data dir (ATL_ANCHOR_FILE / ATL_ANCHOR_WEBHOOK)."""
+        last = {}
+        for a in self.anchors():
+            last[a["tenant"]] = max(last.get(a["tenant"], 0), a["seq"])
+        out = []
+        for r in self.db.conn().execute("SELECT tenant_id FROM tenants").fetchall():
+            t = r["tenant_id"]
+            n = self.db.conn().execute("SELECT COALESCE(MAX(seq),0) AS n FROM events WHERE tenant_id=?", (t,)).fetchone()["n"]
+            if n > last.get(t, 0):
+                try:
+                    out.append(self.anchor(t))
+                except ValueError:
+                    out.append({"tenant": t, "error": "ledger_invalid_or_empty"})
+        return out
+
     def anchors(self):
         if not self.anchor_file.exists():
             return []
@@ -106,9 +125,9 @@ class Core:
     def verify_all(self, tenant):
         r = verify_conn(self.db.conn(), tenant, self.keys, self.anchors())
         if r["ok"]:
-            events = self.ledger.events(tenant, limit=10 ** 9)
-            erased = {e["payload"].get("hash") for e in events if e["type"] == "evidence.erased"}
-            for e in events:
+            # stream the ledger twice (tombstones first) instead of materializing it
+            erased = {e["payload"].get("hash") for e in self.ledger.iter_events(tenant) if e["type"] == "evidence.erased"}
+            for e in self.ledger.iter_events(tenant):
                 for h in e["evidence"]:
                     if h in erased:
                         continue  # deliberately erased; the tombstone is part of the verified chain
@@ -126,10 +145,9 @@ class Core:
         workflow, not a compliance determination."""
         if not (valid_id(tenant) and isinstance(h, str) and len(h) == 64 and all(ch in "0123456789abcdef" for ch in h)):
             raise ValueError("bad_ref")
-        events = self.ledger.events(tenant, limit=10 ** 9)
-        if not any(h in e["evidence"] for e in events):
+        if not any(h in e["evidence"] for e in self.ledger.iter_events(tenant)):
             raise ValueError("hash_not_referenced_by_this_tenant")
-        if any(e["type"] == "evidence.erased" and e["payload"].get("hash") == h for e in events):
+        if any(e["type"] == "evidence.erased" and e["payload"].get("hash") == h for e in self.ledger.iter_events(tenant)):
             self.evidence.erase(tenant, h)  # finish a half-done erase; no second tombstone
             return {"erased": h, "already": True}
         ev = self.ledger.append(tenant, "evidence.erased", actor, {"hash": h, "reason": str(reason)[:200]})
@@ -321,7 +339,8 @@ class Core:
         if d["decision"] != "allow":
             return dict(base, ok=False, status=403)
         inv = self.ledger.append(t, "tool.invoked", a, {"action": action, "params_hash": ph}, [ph], corr, dec["event_id"])
-        out = self.executor.run(action, params, self.policy.limits["timeout_s"], t)
+        out = self.executor.run(action, params, self.policy.limits["timeout_s"], t,
+                                a if self.policy.limits["per_agent_sandbox"] else None)
         if out["ok"]:
             oh = self.evidence.put(t, canon(out["output"]))
             self.ledger.append(t, "tool.completed", a, {"action": action, "output_hash": oh,

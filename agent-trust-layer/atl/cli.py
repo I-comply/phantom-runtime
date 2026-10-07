@@ -67,6 +67,7 @@ def main(argv=None):
     sv = s.add_parser("serve")
     sv.add_argument("--host", default="127.0.0.1")
     sv.add_argument("--port", type=int, default=8787)
+    sv.add_argument("--anchor-every", type=float, metavar="SECONDS", help="anchor every tenant whose ledger grew, on this interval (env ATL_ANCHOR_EVERY_S)")
     s.add_parser("mcp")
     v = s.add_parser("verify")
     v.add_argument("tenant")
@@ -79,7 +80,8 @@ def main(argv=None):
     er.add_argument("hash")
     er.add_argument("--reason", default="")
     an = s.add_parser("anchor")
-    an.add_argument("tenant")
+    an.add_argument("tenant", nargs="?")
+    an.add_argument("--all", action="store_true", help="anchor every tenant whose ledger grew since its last anchor")
     ev = s.add_parser("events")
     ev.add_argument("tenant")
     ev.add_argument("--limit", type=int, default=50)
@@ -121,7 +123,7 @@ def main(argv=None):
             pj(c.admin_principal(a.op, a.tenant, a.id, a.kind, a.ttl_days))
         elif a.cmd == "serve":
             from .server import serve
-            serve(c, a.host, a.port)
+            serve(c, a.host, a.port, a.anchor_every)
         elif a.cmd == "verify":
             r = c.verify_all(a.tenant)
             pj(r)
@@ -130,7 +132,12 @@ def main(argv=None):
             pj(c.rotate_master() if a.op == "rotate"
                else {"provider": c.keys.name, "master_version": c.keys.current_version()})
         elif a.cmd == "anchor":
-            pj(c.anchor(a.tenant))
+            if a.all:
+                pj(c.anchor_all())
+            elif a.tenant:
+                pj(c.anchor(a.tenant))
+            else:
+                sys.exit("atl anchor TENANT | --all")
         elif a.cmd == "erase":
             pj(c.erase_evidence(a.tenant, a.hash, a.reason))
         elif a.cmd == "events":

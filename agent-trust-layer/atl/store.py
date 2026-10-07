@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS events(
   PRIMARY KEY(tenant_id, seq));
 CREATE UNIQUE INDEX IF NOT EXISTS events_idem ON events(tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS events_corr ON events(tenant_id, correlation_id);
+-- tenant_master_version() looks up the latest key.rotated event on every append; without this it scans the tenant's whole ledger
+CREATE INDEX IF NOT EXISTS events_keyrot ON events(tenant_id, seq) WHERE type='key.rotated';
 CREATE TRIGGER IF NOT EXISTS events_no_update BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'ledger is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'ledger is append-only'); END;
 """

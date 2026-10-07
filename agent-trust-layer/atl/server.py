@@ -76,7 +76,7 @@ def make_handler(core, admin_token):
     return H
 
 
-def serve(core, host="127.0.0.1", port=8787):
+def serve(core, host="127.0.0.1", port=8787, anchor_every=None):
     tp = core.dir / "admin.token"
     if not tp.exists():
         import secrets
@@ -85,5 +85,17 @@ def serve(core, host="127.0.0.1", port=8787):
             f.write(secrets.token_urlsafe(32))
     token = os.environ.get("ATL_ADMIN_TOKEN") or tp.read_text().strip()
     srv = ThreadingHTTPServer((host, port), make_handler(core, token))
+    every = anchor_every or float(os.environ.get("ATL_ANCHOR_EVERY_S") or 0)
+    if every > 0:
+        import threading, time
+
+        def loop():
+            while True:
+                time.sleep(every)
+                try:
+                    core.anchor_all()
+                except Exception as e:  # keep serving; the failure shows up as a stale anchor
+                    print(f"atl: periodic anchor failed: {type(e).__name__}", flush=True)
+        threading.Thread(target=loop, daemon=True).start()
     print(f"ATL gateway on http://{host}:{port}  admin token: {tp}")
     srv.serve_forever()

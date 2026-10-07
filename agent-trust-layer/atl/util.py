@@ -4,7 +4,9 @@ ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 
 
 def valid_id(x):
-    return isinstance(x, str) and ID_RE.match(x) is not None
+    """Ids become path components (sandbox/evidence dirs). '.' and '..' match the character class
+    but would escape the directory, so names made only of dots are rejected."""
+    return isinstance(x, str) and ID_RE.match(x) is not None and x.strip(".") != ""
 
 
 def canon(o):

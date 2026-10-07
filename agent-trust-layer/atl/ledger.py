@@ -104,6 +104,16 @@ class Ledger:
             (tenant, after, int(limit))).fetchall()
         return [dict(_body(r), hash=r["hash"], mac=r["mac"]) for r in rows]
 
+    def iter_events(self, tenant, chunk=1000):
+        """Stream a tenant's events in seq order without loading the whole ledger."""
+        after = 0
+        while True:
+            rows = self.events(tenant, chunk, after)
+            if not rows:
+                return
+            yield from rows
+            after = rows[-1]["seq"]
+
     def verify(self, tenant, anchors=()):
         return verify_conn(self.db.conn(), tenant, self.keys, anchors)
 

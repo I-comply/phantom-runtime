@@ -21,6 +21,10 @@ Event fields: tenant_id, seq, event_id, ts, type, actor, correlation_id, causati
 - **Erasure**: `atl erase TENANT HASH --reason ...` (or `POST /v1/admin/erase`) deletes one evidence blob after appending `evidence.erased {hash}`; `verify` accepts tombstoned blobs, and still fails on any other missing or corrupt blob. The SHA-256 stays in the ledger events that referenced it; for low-entropy personal data a hash can be guessable. Engineering support for a deletion workflow, not a compliance determination.
 - **Policy constraints** per param: `enum`, `pattern` (whole-value regex), `min`/`max` for numbers (`max` on strings is still the length). Bad constraints refuse to start. Per-tool budget: `"rate_per_minute": N` on a tool denies with `tool_rate_limited` beyond N calls per minute per agent.
 - **Admin reads** (`/v1/admin/events`, `/v1/admin/verify`) append `admin.read` events.
+- **Append cost**: the per-append key-rotation lookup used to walk the tenant's whole ledger (about 10x slower at 20k events); a partial index fixes it. `verify`/`erase` stream the ledger instead of loading it.
+- **Anchoring window**: anchors commit to a prefix of the ledger, so events appended after the newest anchor can be truncated by someone with database write access and nothing notices. Anchor on a schedule: `atl serve --anchor-every SECONDS` (or `ATL_ANCHOR_EVERY_S`), or `atl anchor --all` from cron, with anchors stored outside the data dir. The window is the anchor interval.
+- **Per-agent sandbox** (opt-in): `"limits": {"per_agent_sandbox": true}` gives each agent its own directory; by default agents in a tenant share one (per-tenant isolation, as before).
+- **Ids**: `.`, `..` and other dot-only ids are rejected (they are used as directory names).
 - Not changed: single static admin token, SQLite single writer, no tool-adapter mechanism (tools are hardcoded in `worker.py`), no asymmetric signatures (needs a non-stdlib crypto dependency).
 
 ## Executor

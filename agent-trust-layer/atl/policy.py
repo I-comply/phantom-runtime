@@ -17,8 +17,10 @@ class Policy:
                 raise PolicyError("manifest version must be 1")
             self.tools, self.grants = doc["tools"], doc["grants"]
             self.limits = {"per_minute": 60, "approval_ttl_s": 900, "timeout_s": 10, "skew_s": 60,
-                           "idem_lease_s": 120}  # a request still in_progress after this is treated as abandoned
+                           "idem_lease_s": 120, "per_agent_sandbox": False}  # a request still in_progress after this is treated as abandoned
             self.limits.update(doc.get("limits", {}))
+            if type(self.limits["per_agent_sandbox"]) is not bool:
+                raise PolicyError("limits.per_agent_sandbox must be true or false")
             for name, t in self.tools.items():
                 if t.get("risk") not in ("low", "high", "destructive"):
                     raise PolicyError(f"{name}: bad risk")
