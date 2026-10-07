@@ -1,6 +1,7 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.core.models_v3 import EventV3, EventQueue
+from app.core.event_store import EntityOwnedElsewhere
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta, timezone
 import asyncio
@@ -33,10 +34,15 @@ class EventEngineV3:
         # last block and both append block N+1 (a forked chain; verify_chain_integrity then fails).
         db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": "events_v3:" + entity_id})
 
-        # Get last event for this entity to chain
+        # Get last event for this entity to chain. A chain belongs to the tenant that started it: another
+        # tenant must not extend it (the entity id is global, so without this it could poison the chain).
         last_event = db.query(EventV3).filter(
             EventV3.entity_id == entity_id
         ).order_by(EventV3.block_index.desc()).first()
+        if tenant_id is not None and last_event is not None and last_event.tenant_id is not None \
+                and str(last_event.tenant_id) != str(tenant_id):
+            db.rollback()
+            raise EntityOwnedElsewhere(entity_id)
         
         block_index = (last_event.block_index + 1) if last_event else 0
         previous_hash = last_event.event_hash if last_event else None
