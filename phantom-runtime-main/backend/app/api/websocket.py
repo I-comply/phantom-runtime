@@ -164,12 +164,11 @@ def _still_valid(principal: Principal) -> Optional[Principal]:
     from app.core.database import SessionLocal
     from app.core.deps import is_platform_admin
     from app.core.models_v3 import APIKey
-    from app.core.security import RBACMiddleware
-    from datetime import timezone
+    from app.core.security import RBACMiddleware, key_expired
     db = SessionLocal()
     try:
         key = db.query(APIKey).filter(APIKey.id == principal.key_id, APIKey.is_active == True).first()  # noqa: E712
-        if not key or (key.expires_at and key.expires_at < datetime.now(timezone.utc)):
+        if not key or key_expired(key):
             return None
         if not RBACMiddleware.check_permission(key, db, "events", "read"):
             return None
