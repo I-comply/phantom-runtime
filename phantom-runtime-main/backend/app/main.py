@@ -5,7 +5,8 @@ from app.core.config import settings
 from app.core.database import init_db, SessionLocal
 from app.api import routes_events, routes_state
 from app.api import routes_workspaces, routes_snapshots, routes_plugins, routes_defi
-from app.api import routes_v3
+from app.api import routes_v3, routes_reconciler
+from app.core.reconciler_http import HttpPeer, parse_peers
 from app.api import websocket
 from app.core.security import SecurityManager
 from app.core.reconciler import ReconciliationDaemon, ReplicaState
@@ -22,8 +23,13 @@ finally:
     db.close()
 
 replica_state = ReplicaState(settings.RECONCILER_NODE_ID)
-# No network Peer transport exists yet, so the daemon starts with no peers.
-reconciler = ReconciliationDaemon(replica_state, [], interval=settings.RECONCILER_INTERVAL)
+_peers = []
+if settings.RECONCILER_ENABLED:
+    if not settings.RECONCILER_SHARED_SECRET:
+        raise RuntimeError("RECONCILER_ENABLED requires RECONCILER_SHARED_SECRET")
+    _peers = [HttpPeer(nid, url, settings.RECONCILER_SHARED_SECRET)
+              for nid, url in parse_peers(settings.RECONCILER_PEERS).items()]
+reconciler = ReconciliationDaemon(replica_state, _peers, interval=settings.RECONCILER_INTERVAL)
 
 
 @asynccontextmanager
@@ -69,6 +75,9 @@ app.include_router(routes_workspaces.router)
 app.include_router(routes_snapshots.router)
 app.include_router(routes_plugins.router)
 app.include_router(routes_defi.router)
+
+app.state.replica_state = replica_state
+app.include_router(routes_reconciler.router)
 
 # Include v3 router (next-gen features)
 app.include_router(routes_v3.router)

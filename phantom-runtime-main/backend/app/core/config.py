@@ -22,6 +22,8 @@ class Settings:
     # Cross-instance reconciliation daemon (app/core/reconciler.py). Off by default.
     RECONCILER_ENABLED: bool = os.getenv("RECONCILER_ENABLED", "false").lower() in ("1", "true", "yes")
     RECONCILER_NODE_ID: str = os.getenv("RECONCILER_NODE_ID", os.getenv("HOSTNAME", "node-0"))
+    RECONCILER_SHARED_SECRET: str | None = os.getenv("RECONCILER_SHARED_SECRET")
+    RECONCILER_PEERS: str = os.getenv("RECONCILER_PEERS", "")  # "id=url,id=url"
     RECONCILER_INTERVAL: float = float(os.getenv("RECONCILER_INTERVAL", "5"))
 
 
