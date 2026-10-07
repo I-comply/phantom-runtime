@@ -17,9 +17,9 @@ Scope: `agent-trust-layer/` only. Date 2026-10-05.
 Earlier in this branch's history: tenants shared one sandbox directory (fixed in PR #6).
 
 Open / tech debt (not changed):
-- An idempotency row stays `in_progress` (409) if the process dies between execute and response write.
+- ~~An idempotency row stays `in_progress` (409) if the process dies between execute and response write.~~ Fixed in 0.2: after `idem_lease_s` the request is reconciled from the ledger (never re-executed) and answered `409 abandoned` with `executed: no|unknown`, or with its recorded outcome if the tool had finished.
 - Rate limits use the TCP peer address; behind a proxy all clients share one source (per-agent keying limits the blast radius).
-- No TLS in the built-in server (terminate at a proxy); evidence stores request params in plaintext.
+- No TLS in the built-in server (terminate at a proxy); evidence stores request params in plaintext (0.2 adds `atl erase`: deletes a blob and records an `evidence.erased` tombstone so verification still passes; the blob's SHA-256 stays in the ledger).
 - SQLite single writer; Python policy evaluator.
 
 ## 2. Secrets and environment scan

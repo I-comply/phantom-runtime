@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS principals(
   PRIMARY KEY(tenant_id, principal_id, kind));
 CREATE TABLE IF NOT EXISTS nonces(tenant_id TEXT NOT NULL, nonce TEXT NOT NULL, expires INTEGER NOT NULL, PRIMARY KEY(tenant_id, nonce));
 CREATE INDEX IF NOT EXISTS nonces_exp ON nonces(expires);
-CREATE TABLE IF NOT EXISTS requests(tenant_id TEXT NOT NULL, idem_key TEXT NOT NULL, digest TEXT NOT NULL, response TEXT, PRIMARY KEY(tenant_id, idem_key));
+CREATE TABLE IF NOT EXISTS requests(tenant_id TEXT NOT NULL, idem_key TEXT NOT NULL, digest TEXT NOT NULL, response TEXT, started INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(tenant_id, idem_key));
 CREATE TABLE IF NOT EXISTS approvals_used(k TEXT PRIMARY KEY, used INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS rate(k TEXT NOT NULL, bucket INTEGER NOT NULL, n INTEGER NOT NULL, PRIMARY KEY(k, bucket));
 CREATE TABLE IF NOT EXISTS events(
@@ -48,6 +48,8 @@ class DB:
         c.executescript(SCHEMA)
         if "master_version" not in [r["name"] for r in c.execute("PRAGMA table_info(principals)")]:
             c.execute("ALTER TABLE principals ADD COLUMN master_version INTEGER NOT NULL DEFAULT 1")
+        if "started" not in [r["name"] for r in c.execute("PRAGMA table_info(requests)")]:
+            c.execute("ALTER TABLE requests ADD COLUMN started INTEGER NOT NULL DEFAULT 0")
 
     def conn(self):
         c = getattr(self._l, "c", None)

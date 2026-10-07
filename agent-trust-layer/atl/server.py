@@ -41,9 +41,13 @@ def make_handler(core, admin_token):
                 return self._send(401, {"error": "unauthorized"})
             try:
                 if u.path == "/v1/admin/events":
-                    return self._send(200, {"events": core.ledger.events(q["tenant_id"], int(q.get("limit", 100)), int(q.get("after", 0)))})
+                    out = {"events": core.ledger.events(q["tenant_id"], int(q.get("limit", 100)), int(q.get("after", 0)))}
+                    core.log_admin_read(q["tenant_id"], "events", {"limit": q.get("limit"), "after": q.get("after")})
+                    return self._send(200, out)
                 if u.path == "/v1/admin/verify":
-                    return self._send(200, core.verify_all(q["tenant_id"]))
+                    out = core.verify_all(q["tenant_id"])
+                    core.log_admin_read(q["tenant_id"], "verify")  # after verifying, so it can't affect the result
+                    return self._send(200, out)
             except Exception:
                 return self._send(400, {"error": "bad_request"})
             self._send(404, {"error": "not_found"})
@@ -64,6 +68,8 @@ def make_handler(core, admin_token):
                                                                 body.get("kind", "agent"), body.get("ttl_days")))
                 if self.path == "/v1/admin/anchor":
                     return self._send(200, core.anchor(body["tenant_id"]))
+                if self.path == "/v1/admin/erase":
+                    return self._send(200, core.erase_evidence(body["tenant_id"], body["hash"], body.get("reason", "")))
             except Exception as e:
                 return self._send(400, {"error": str(e)[:100]})
             self._send(404, {"error": "not_found"})

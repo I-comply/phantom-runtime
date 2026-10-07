@@ -70,7 +70,14 @@ def main(argv=None):
     s.add_parser("mcp")
     v = s.add_parser("verify")
     v.add_argument("tenant")
-    v.add_argument("--chain-only", action="store_true", help="offline: no master key needed")
+    v.add_argument("--chain-only", action="store_true", help="offline: no master key needed. Checks structure only; "
+                   "anyone who can write the database can recompute it. Add --anchors for real assurance.")
+    v.add_argument("--anchors", help="anchors.jsonl held OUTSIDE the data dir (e.g. from your ATL_ANCHOR_WEBHOOK receiver); "
+                   "with --chain-only the ledger must still match every anchored hash")
+    er = s.add_parser("erase", help="delete one evidence blob and record an evidence.erased tombstone")
+    er.add_argument("tenant")
+    er.add_argument("hash")
+    er.add_argument("--reason", default="")
     an = s.add_parser("anchor")
     an.add_argument("tenant")
     ev = s.add_parser("events")
@@ -95,7 +102,17 @@ def main(argv=None):
     elif a.cmd == "verify" and a.chain_only:
         conn = sqlite3.connect(f"file:{Path(a.dir) / 'atl.db'}?mode=ro", uri=True)
         conn.row_factory = sqlite3.Row
-        r = verify_conn(conn, a.tenant)
+        anchors = []
+        if a.anchors:
+            anchors = [json.loads(l) for l in Path(a.anchors).read_text().splitlines() if l.strip()]
+        r = dict(verify_conn(conn, a.tenant, None, anchors))
+        if anchors:
+            r["assurance"] = "structure_and_anchors"
+        else:
+            r["assurance"] = "structure_only"
+            r["warning"] = ("chain-only checks structure, not authenticity: anyone with write access to the database "
+                            "can rewrite events and recompute every hash and this still passes. Pass --anchors with a file "
+                            "held outside the data dir, or run keyed verification (atl verify, needs the master key).")
         pj(r)
         sys.exit(0 if r["ok"] else 1)
     else:
@@ -114,5 +131,7 @@ def main(argv=None):
                else {"provider": c.keys.name, "master_version": c.keys.current_version()})
         elif a.cmd == "anchor":
             pj(c.anchor(a.tenant))
+        elif a.cmd == "erase":
+            pj(c.erase_evidence(a.tenant, a.hash, a.reason))
         elif a.cmd == "events":
             pj(c.ledger.events(a.tenant, a.limit))
