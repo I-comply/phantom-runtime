@@ -6,7 +6,7 @@ import pytest
 from starlette.websockets import WebSocketDisconnect
 
 from app.api import websocket as ws_mod
-from .conftest import mint_key, eid
+from .conftest import mint_key, eid, make_ws
 
 
 @pytest.fixture(autouse=True)
@@ -17,7 +17,7 @@ def fast_ws(monkeypatch):
 
 
 def _ws(client):
-    return client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    return make_ws(client)
 
 
 def _event(client, key, entity):

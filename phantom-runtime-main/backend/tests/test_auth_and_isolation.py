@@ -2,7 +2,7 @@
 (see the repo's PR history for #9/#10): every endpoint's unauth-vs-authed
 behavior, RBAC, and real tenant isolation on reads via EntityWorkspace."""
 import uuid
-from .conftest import mint_key, eid
+from .conftest import mint_key, eid, make_ws
 
 
 # ---- bootstrap / key minting ----
@@ -31,7 +31,7 @@ def test_bootstrap_mint_and_admin_can_mint_more(client, bootstrap_key, workspace
 
 
 def test_workspace_create_returns_plaintext_key_once_only(client):
-    ws = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    ws = make_ws(client)
     assert ws["api_key"].startswith("pk_")
     me = client.get("/api/workspaces/me", headers={"X-API-Key": ws["api_key"]})
     assert me.status_code == 200
@@ -85,7 +85,7 @@ def test_plugin_create_requires_auth(client):
 
 def test_v3_tenant_isolation_on_shared_entity_id(client, bootstrap_key, workspace, admin_key, platform_key):
     entity = eid()
-    ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    ws2 = make_ws(client)
     key_a = mint_key(client, admin_key, workspace["id"], name="a")
     key_b = mint_key(client, admin_key, ws2["id"], name="b")
 
@@ -108,7 +108,7 @@ def test_v3_tenant_isolation_on_shared_entity_id(client, bootstrap_key, workspac
 # ---- RBAC / tenant isolation: v1 events + state (via EntityWorkspace) ----
 
 def test_v1_tenant_isolation_events_and_state(client, admin_key, workspace):
-    ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    ws2 = make_ws(client)
     key_a = mint_key(client, admin_key, workspace["id"], name="a")
     key_b = mint_key(client, admin_key, ws2["id"], name="b")
     entity = eid()
@@ -126,7 +126,7 @@ def test_v1_tenant_isolation_events_and_state(client, admin_key, workspace):
 
 
 def test_v1_all_events_and_all_entities_scoped_per_workspace(client, admin_key, workspace):
-    ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    ws2 = make_ws(client)
     key_a = mint_key(client, admin_key, workspace["id"], name="a")
     key_b = mint_key(client, admin_key, ws2["id"], name="b")
     entity_a, entity_b = eid(), eid()
@@ -144,7 +144,7 @@ def test_v1_all_events_and_all_entities_scoped_per_workspace(client, admin_key, 
 # ---- RBAC / tenant isolation: snapshots (incl. the "no snapshot yet" replay-fallback leak) ----
 
 def test_snapshot_tenant_isolation(client, admin_key, workspace):
-    ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    ws2 = make_ws(client)
     key_a = mint_key(client, admin_key, workspace["id"], name="a")
     key_b = mint_key(client, admin_key, ws2["id"], name="b")
     entity = eid()
@@ -164,7 +164,7 @@ def test_snapshot_tenant_isolation(client, admin_key, workspace):
 # ---- RBAC / tenant isolation: defi, including the "created via defi only" auto-claim ----
 
 def test_defi_tenant_isolation_and_entity_auto_claim(client, admin_key, workspace):
-    ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    ws2 = make_ws(client)
     key_a = mint_key(client, admin_key, workspace["id"], name="a")
     key_b = mint_key(client, admin_key, ws2["id"], name="b")
     entity = eid()
@@ -183,7 +183,7 @@ def test_defi_tenant_isolation_and_entity_auto_claim(client, admin_key, workspac
 # ---- entity linking must not let one tenant claim another tenant's entity ----
 
 def test_cannot_link_another_tenants_entity_to_my_workspace(client, admin_key, workspace):
-    ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    ws2 = make_ws(client)
     key_a = mint_key(client, admin_key, workspace["id"], name="a")
     key_b = mint_key(client, admin_key, ws2["id"], name="b")
     entity = eid()

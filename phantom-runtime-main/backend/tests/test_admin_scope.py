@@ -2,11 +2,11 @@
 (PHANTOM_PLATFORM_TENANT_ID) sees across tenants or mints keys for other workspaces."""
 import uuid
 
-from .conftest import mint_key, eid
+from .conftest import mint_key, eid, make_ws
 
 
 def _ws(client):
-    return client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    return make_ws(client)
 
 
 def _event(client, key, entity, payload=None):

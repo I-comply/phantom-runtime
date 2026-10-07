@@ -173,6 +173,11 @@ key minting are all scoped to that workspace. A **platform admin** is an `admin`
 to the workspace named by `PHANTOM_PLATFORM_TENANT_ID`; only it sees across tenants or mints keys
 for other workspaces. The one-time bootstrap key can still mint keys for any workspace.
 
+**Creating workspaces** (`POST /api/workspaces/`) takes the bootstrap key (`X-Bootstrap-Key`) or a
+platform admin `X-API-Key`; it used to be open to anyone. Tenants therefore do not self-register:
+an operator creates the workspace and hands over its `pk_` key. `name` is 1-120 characters and
+`settings` at most 8 KiB of JSON.
+
 **WebSockets** (`/ws/events`, `/ws/metrics`) require an API key with `events:read`, sent as the
 first message: `{"type": "auth", "api_key": "..."}` (a key in the URL would end up in logs). The
 server answers `{"type": "auth_ok"}`, or `auth_error` and closes with code 4401 (also after 5 s

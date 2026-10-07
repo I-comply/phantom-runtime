@@ -6,11 +6,11 @@ from datetime import datetime, timedelta, timezone
 from app.core.database import SessionLocal
 from app.core.event_engine_v3 import AsyncEventPipeline, EventEngineV3
 from app.core.models_v3 import EventQueue, EventV3
-from .conftest import mint_key, eid
+from .conftest import mint_key, eid, make_ws
 
 
 def _tenants(client, admin_key, workspace):
-    ws2 = client.post("/api/workspaces/", json={"name": f"ws-{uuid.uuid4().hex[:8]}"}).json()
+    ws2 = make_ws(client)
     return mint_key(client, admin_key, workspace["id"], name="a"), mint_key(client, admin_key, ws2["id"], name="b")
 
 
