@@ -173,7 +173,7 @@ def test_defi_tenant_isolation_and_entity_auto_claim(client, admin_key, workspac
     assert client.post("/api/defi/events", json=body, headers={"X-API-Key": key_a}).status_code == 200
 
     assert client.get(f"/api/defi/portfolio/{entity}", headers={"X-API-Key": key_b}).json()["balances"] == {}
-    assert client.get(f"/api/defi/portfolio/{entity}", headers={"X-API-Key": key_a}).json()["balances"]["BTC"] == 1.0
+    assert client.get(f"/api/defi/portfolio/{entity}", headers={"X-API-Key": key_a}).json()["balances"]["BTC"] == "1"
 
     # entity was never posted via /api/events — defi_manager must have claimed it anyway
     assert client.get(f"/api/events/entity/{entity}", headers={"X-API-Key": key_a}).status_code == 200

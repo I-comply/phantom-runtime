@@ -173,6 +173,18 @@ key minting are all scoped to that workspace. A **platform admin** is an `admin`
 to the workspace named by `PHANTOM_PLATFORM_TENANT_ID`; only it sees across tenants or mints keys
 for other workspaces. The one-time bootstrap key can still mint keys for any workspace.
 
+**Money is exact.** Replay and the DeFi portfolio use `Decimal`; balances and amounts in state,
+snapshots and the portfolio are canonical decimal **strings** (`"70.5"`, not `70.5`), so ten
+deposits of `"0.1"` are exactly `"1"`. `GET /api/state/{id}` returns `schema_version: 2` for this
+shape (1 had JSON floats). Money events (`deposit`, `withdraw`, `trade`, `transfer`, `stake`,
+`unstake`, `claim_rewards`) must carry amounts as decimal strings or integers: a JSON float or junk is
+rejected with 422 (`/api/events`) or 400 (`/api/defi/events`). Replay stays lenient: events already
+in the log with floats are read exactly, and an unusable amount counts as 0 and is flagged
+(`invalid_amount`) in `event_history` instead of making the entity unreadable. `claim_rewards` credits the
+asset (it used to merge its payload into the state). Run `python -m app.scripts.rebuild_snapshots` once
+after deploying: snapshots built before this change hold float balances (they are still read
+correctly and rewritten as strings, but rebuilding normalizes them all).
+
 **Creating workspaces** (`POST /api/workspaces/`) takes the bootstrap key (`X-Bootstrap-Key`) or a
 platform admin `X-API-Key`; it used to be open to anyone. Tenants therefore do not self-register:
 an operator creates the workspace and hands over its `pk_` key. `name` is 1-120 characters and

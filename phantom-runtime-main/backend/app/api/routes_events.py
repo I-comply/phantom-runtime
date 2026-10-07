@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.core.event_store import EventStore
 from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v3 import APIKey
+from app.core import money
 from datetime import datetime
 
 router = APIRouter(prefix="/api/events", tags=["events"])
@@ -38,7 +39,12 @@ def create_event(
     api_key_obj: APIKey = Depends(require_permission("events", "write")),
 ):
     """Append a new event to the store. Links entity_id to the caller's own
-    workspace (first writer wins — see EventStore.append_event)."""
+    workspace (first writer wins — see EventStore.append_event). Money events (deposit, withdraw,
+    trade, ...) must carry amounts as decimal strings or integers: floats are rejected (422)."""
+    try:
+        money.validate_money_payload(event.event_type, event.payload)
+    except money.AmountError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     stored_event = EventStore.append_event(
         db=db,
         entity_id=event.entity_id,

@@ -18,6 +18,8 @@ class StateResponse(BaseModel):
     runtime_status: str
     snapshot_used: bool = False
     snapshot_number: Optional[int] = None
+    # 2: balances and event_history amounts are canonical decimal strings (1 had JSON floats)
+    schema_version: int = 2
 
 class AgentRunRequest(BaseModel):
     entity_id: str

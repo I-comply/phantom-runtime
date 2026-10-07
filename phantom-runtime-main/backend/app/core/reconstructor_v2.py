@@ -1,6 +1,7 @@
 import copy
 from typing import Dict, Any, List
 from app.core.models import Event
+from app.core import money
 
 class StateReconstructorV2:
     """The one state reconstructor. Every read path (full replay, snapshot creation, snapshot +
@@ -41,7 +42,7 @@ class StateReconstructorV2:
             state.clear()
         
         # DeFi event types
-        elif event_type in ["deposit", "withdraw", "trade", "transfer", "stake", "unstake"]:
+        elif event_type in ["deposit", "withdraw", "trade", "transfer", "stake", "unstake", "claim_rewards"]:
             # Apply financial event logic
             StateReconstructorV2._apply_defi_event(state, event_type, payload)
         
@@ -54,44 +55,47 @@ class StateReconstructorV2:
 
     @staticmethod
     def _apply_defi_event(state: Dict[str, Any], event_type: str, payload: Dict[str, Any]) -> None:
-        """Apply DeFi-specific event logic"""
-        # Initialize balances if not present
-        if "balances" not in state:
+        """Apply DeFi-specific event logic with exact decimal arithmetic.
+
+        Balances are canonical decimal strings. Legacy numeric balances (snapshots written before this
+        change) are read exactly and rewritten as strings on the next update; unusable amounts count
+        as 0 and are flagged in event_history instead of raising, so one bad event can't make an
+        entity unreadable."""
+        if not isinstance(state.get("balances"), dict):
             state["balances"] = {}
-        
+        bal = state["balances"]
+
         asset = payload.get("asset", "USD")
-        amount = float(payload.get("amount", 0))
-        
-        if event_type == "deposit":
-            state["balances"][asset] = state["balances"].get(asset, 0) + amount
-        
-        elif event_type == "withdraw":
-            state["balances"][asset] = state["balances"].get(asset, 0) - amount
-        
+        amount = money.lenient(payload.get("amount", 0))
+
+        if event_type in ("deposit", "claim_rewards"):
+            bal[asset] = money.fmt(money.add(money.lenient(bal.get(asset, 0)), amount))
+
+        elif event_type in ("withdraw", "transfer"):  # transfer: the out leg
+            bal[asset] = money.fmt(money.sub(money.lenient(bal.get(asset, 0)), amount))
+
         elif event_type == "trade":
             from_asset = payload.get("from_asset")
             to_asset = payload.get("to_asset")
-            from_amount = float(payload.get("from_amount", 0))
-            to_amount = float(payload.get("to_amount", 0))
-            
+            from_amount = money.lenient(payload.get("from_amount", 0))
+            to_amount = money.lenient(payload.get("to_amount", 0))
+
             if from_asset:
-                state["balances"][from_asset] = state["balances"].get(from_asset, 0) - from_amount
+                bal[from_asset] = money.fmt(money.sub(money.lenient(bal.get(from_asset, 0)), from_amount))
             if to_asset:
-                state["balances"][to_asset] = state["balances"].get(to_asset, 0) + to_amount
-        
-        elif event_type == "transfer":
-            # Transfer out
-            state["balances"][asset] = state["balances"].get(asset, 0) - amount
-        
-        # Store event metadata
+                bal[to_asset] = money.fmt(money.add(money.lenient(bal.get(to_asset, 0)), to_amount))
+
+        # Store event metadata. Canonical values win over the raw payload's.
         if "event_history" not in state:
             state["event_history"] = []
-        state["event_history"].append({
-            "type": event_type,
-            "asset": asset,
-            "amount": amount,
-            **payload
-        })
+        entry = dict(payload)
+        entry.update({"type": event_type, "asset": asset, "amount": money.fmt(amount)})
+        for k in ("from_amount", "to_amount"):
+            if k in payload:
+                entry[k] = money.fmt(money.lenient(payload[k]))
+        if "amount" in payload and not money.usable(payload["amount"]):
+            entry["invalid_amount"] = True
+        state["event_history"].append(entry)
     
     @staticmethod
     def get_event_count(events: List[Event]) -> int:

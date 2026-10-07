@@ -33,12 +33,23 @@ class DeFiEventManager:
         if event_type not in DeFiEventManager.SUPPORTED_EVENT_TYPES:
             raise ValueError(f"Unsupported DeFi event type: {event_type}")
         
-        # Create core event first
+        # Strict, exact amounts (ValueError -> 400): a bad amount used to be stored and then made
+        # every later replay of the entity fail.
+        from app.core import money
+        parsed = money.parse_amount(amount)
+        if price is not None:
+            money.parse_amount(price)
+        try:
+            money.validate_money_payload(event_type, metadata or {})  # e.g. trade from_amount/to_amount
+        except money.AmountError as e:
+            raise ValueError(str(e))
+
+        # Create core event first. Caller metadata comes first so it can't override the real fields.
         payload = {
+            **(metadata or {}),
             "asset": asset,
-            "amount": amount,
+            "amount": money.fmt(parsed),
             "price": price,
-            **(metadata or {})
         }
         
         EventStore.lock_entity(db, entity_id)
@@ -83,37 +94,43 @@ class DeFiEventManager:
             q = q.filter(DeFiEvent.workspace_id == workspace_id)
         defi_events = q.order_by(DeFiEvent.created_at.asc()).all()
         
+        # Exact decimal arithmetic; balances and amounts are canonical decimal strings.
+        from app.core import money
         balances = {}
         transactions = []
-        
+
+        def bal(asset):
+            return money.lenient(balances.get(asset, 0))
+
         for event in defi_events:
             asset = event.asset
-            amount = float(event.amount)
-            
-            if event.event_type == "deposit":
-                balances[asset] = balances.get(asset, 0) + amount
-            elif event.event_type == "withdraw":
-                balances[asset] = balances.get(asset, 0) - amount
+            amount = money.lenient(event.amount)
+
+            if event.event_type in ("deposit", "claim_rewards"):
+                balances[asset] = money.fmt(money.add(bal(asset), amount))
+            elif event.event_type in ("withdraw", "transfer"):
+                balances[asset] = money.fmt(money.sub(bal(asset), amount))
             elif event.event_type == "trade":
                 # Handle trade event_metadata
-                from_asset = event.event_metadata.get("from_asset")
-                to_asset = event.event_metadata.get("to_asset")
-                from_amount = float(event.event_metadata.get("from_amount", 0))
-                to_amount = float(event.event_metadata.get("to_amount", 0))
-                
+                meta = event.event_metadata or {}
+                from_asset = meta.get("from_asset")
+                to_asset = meta.get("to_asset")
+                from_amount = money.lenient(meta.get("from_amount", 0))
+                to_amount = money.lenient(meta.get("to_amount", 0))
+
                 if from_asset:
-                    balances[from_asset] = balances.get(from_asset, 0) - from_amount
+                    balances[from_asset] = money.fmt(money.sub(bal(from_asset), from_amount))
                 if to_asset:
-                    balances[to_asset] = balances.get(to_asset, 0) + to_amount
-            
+                    balances[to_asset] = money.fmt(money.add(bal(to_asset), to_amount))
+
             transactions.append({
                 "type": event.event_type,
                 "asset": asset,
-                "amount": amount,
+                "amount": money.fmt(amount),
                 "price": event.price,
                 "timestamp": event.created_at.isoformat()
             })
-        
+
         return {
             "entity_id": entity_id,
             "balances": balances,
