@@ -197,7 +197,7 @@ subprocess (`backend/app/core/sandbox.py`), never in the API process:
   does **not** block outbound network from sandboxed code.
 - **`SANDBOX_EXECUTOR=docker`**: one throwaway `--network none --read-only
   --cap-drop ALL` container per call (same pattern as
-  `agent-trust-layer/atl/executor.py` in this repo) — also closes the network
+  `atl/executor.py` in https://github.com/I-comply/Agent-Trust-Layer) — also closes the network
   gap. Needs direct Docker daemon access on the host running the backend.
   **Never** grant this by mounting `/var/run/docker.sock` into the backend's own
   container — that trades a sandbox escape for host-root access, which is worse.
