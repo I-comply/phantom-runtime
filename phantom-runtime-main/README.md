@@ -184,6 +184,13 @@ subprocess (`backend/app/core/sandbox.py`), never in the API process:
   container — that trades a sandbox escape for host-root access, which is worse.
   Only enable it when the backend runs outside a container, or has its own
   unshared daemon.
+  **RAM-disk overlay** (`SANDBOX_RAMDISK=1`, default; `SANDBOX_RAMDISK_MB`,
+  default 8): every writable path (`/tmp`, `/var/tmp`, `/run`, `/sandbox/work`)
+  is a size-capped `noexec,nosuid,nodev` tmpfs, swap is disabled, container logs
+  are off (`--log-driver none`), and the in-container entrypoint overwrites and
+  unlinks all tmpfs files on exit/SIGTERM/SIGINT; timeouts force
+  `docker rm -f -v`. Nothing reaches physical storage. Limits: SIGKILL/power loss
+  rely on tmpfs volatility; host swap/hibernation/crash dumps are out of scope.
 
 Restricting `__builtins__` inside the sandbox is defense in depth, not a
 boundary by itself — it's a well-documented pattern to escape (no blocked
