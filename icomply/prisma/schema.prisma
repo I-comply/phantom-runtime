@@ -1,0 +1,33 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model MonitoredSite {
+  id          String      @id @default(uuid())
+  name        String
+  url         String      @unique
+  selector    String
+  lastHash    String?
+  lastChecked DateTime?
+  status      String      @default("ACTIVE")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  changeLogs  ChangeLog[]
+}
+
+model ChangeLog {
+  id              String        @id @default(uuid())
+  monitoredSiteId String
+  site            MonitoredSite @relation(fields: [monitoredSiteId], references: [id], onDelete: Cascade)
+  oldHash         String?
+  newHash         String
+  diffSummary     String?
+  detectedAt      DateTime      @default(now())
+
+  @@index([monitoredSiteId, detectedAt])
+}
