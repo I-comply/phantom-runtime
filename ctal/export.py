@@ -19,7 +19,7 @@ from .timeutil import fmt_ts, now_utc
 
 _HERE = os.path.dirname(__file__)
 _VERIFY_TXT = """CTAL evidence export. Verify offline (no network, no database, no private keys):
-  python3 ctal_verify.py <this.zip> --pin-export-key-id <ID> --pin-export-public-key <BASE64URL>
+  python3 ctal_verify.py <this.zip> --pin-export-key-id=<ID> --pin-export-public-key=<BASE64URL>
 The pinned export public key must be obtained out-of-band (not from this archive).
 A passing result establishes integrity and attribution of the listed items only; read 'not_established'.
 """

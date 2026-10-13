@@ -210,7 +210,7 @@ class JsEndToEnd(JsBase):
         path = os.path.join(self.tmp, "e.zip")
         with open(path, "wb") as f:
             f.write(z)
-        r = subprocess.run([sys.executable, "-I", VERIFIER, path, "--pin-export-key-id", "exp-1", "--pin-export-public-key", b64u(w.exp_s.public_raw())],
+        r = subprocess.run([sys.executable, "-I", VERIFIER, path, "--pin-export-key-id=exp-1", "--pin-export-public-key=" + b64u(w.exp_s.public_raw())],
                            capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout)
 

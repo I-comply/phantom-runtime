@@ -80,7 +80,7 @@ def run_demo() -> int:
     zpath = os.path.join(tmp, "acme-export.zip")
     open(zpath, "wb").write(zbytes)
     verifier = os.path.join(os.path.dirname(__file__), "verifier", "ctal_verify.py")
-    pin = [verifier, zpath, "--pin-export-key-id", exp_s.key_id, "--pin-export-public-key", b64u(exp_s.public_raw())]
+    pin = [verifier, zpath, "--pin-export-key-id=" + exp_s.key_id, "--pin-export-public-key=" + b64u(exp_s.public_raw())]
     r = subprocess.run([sys.executable, "-I"] + pin, capture_output=True, text=True)
     print("offline verifier exit code (untampered): %d" % r.returncode)
     print(r.stdout)

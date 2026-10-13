@@ -34,8 +34,8 @@ class ExportTests(unittest.TestCase):
             f.write(data)
         k = key or self.w.exp_s
         # run as a separate process, isolated mode, importing nothing from ctal
-        r = subprocess.run([sys.executable, "-I", VERIFIER, path, "--pin-export-key-id", k.key_id,
-                            "--pin-export-public-key", b64u(k.public_raw())], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, "-I", VERIFIER, path, "--pin-export-key-id=" + k.key_id,
+                            "--pin-export-public-key=" + b64u(k.public_raw())], capture_output=True, text=True)
         return r.returncode, json.loads(r.stdout)
 
     def rebuild(self, mutate, resign=True, extra=None):
@@ -74,6 +74,22 @@ class ExportTests(unittest.TestCase):
         self.assertTrue(all(e["tenant_id"] == "acme" for e in self.lines("envelopes.jsonl")))
         self.assertEqual(len(self.lines("envelopes.jsonl")), 4)
         self.assertEqual(self.w.ledger().events(event_type="export_created")[0]["payload"], {"format": "ctal.export.v1"})
+
+    def test_pinned_key_beginning_with_dash_is_accepted(self):
+        """Regression: base64url keys may start with '-', which argparse reads as an option unless '=' is used."""
+        from ctal.keys import TrustedKey
+        while True:
+            s = Signer.generate("exp-dash")
+            if b64u(s.public_raw()).startswith("-"):
+                break
+        w = World()
+        w.exp_s = s
+        w.public.add(TrustedKey("exp-dash", s.public_raw(), "export"))
+        w.run()
+        z = build_export(w.ledger(), s, w.public, actor="t", correlation_id="x", clock=w.clock)
+        self.w = w
+        code, rep = self.verify(z, key=s)
+        self.assertEqual((code, rep["verified"]), (0, True), rep)
 
     def test_pinned_key_must_match(self):
         code, rep = self.verify(self.z, key=Signer.generate("exp-1"))

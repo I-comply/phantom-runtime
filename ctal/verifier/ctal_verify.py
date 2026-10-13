@@ -3,7 +3,7 @@
 
 Needs only Python 3.9+ and the `cryptography` package. Imports nothing from the
 CTAL service, needs no database and no private key. The export public key MUST be
-pinned by the operator (--pin-export-key-id/--pin-export-public-key), obtained
+pinned by the operator (--pin-export-key-id=… / --pin-export-public-key=…; use the "=" form: base64url keys may begin with "-"), obtained
 out-of-band; keys inside the archive are only trusted because the pinned key
 signed the manifest that digests them.
 Exit 0 only if every check passed. The JSON report lists what was checked and what is NOT established.

@@ -29,7 +29,7 @@ Offline verification (no database, no private keys, separate process, imports no
 
 ```bash
 python3 -m ctal export-pubkey                         # prints: <export_key_id> <base64url public key>; pin out-of-band
-python3 ctal/verifier/ctal_verify.py export.zip --pin-export-key-id ID --pin-export-public-key PUB
+python3 ctal/verifier/ctal_verify.py export.zip --pin-export-key-id=ID --pin-export-public-key=PUB
 ```
 
 ## Remaining AQPD / CLES unblock steps (original `crypto.js`; see js-integration.md)
