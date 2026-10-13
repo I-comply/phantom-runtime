@@ -7,7 +7,7 @@ Source: `AQPD_CLES_Two_Implementations.zip` (2 files, 116 lines). Stored byte-id
 |---|---|
 | AQPD.js and CLES.js executed through CTAL, 14 tests incl. end-to-end gate + offline export | PROVEN (Node v22.22.0, Python 3.13.16) |
 | Provenance: that these two files are the production AQPD/CLES | UNVERIFIED (supplied without history, tests or docs) |
-| `crypto.js` (imported by both files) | **Missing from the archive.** `ctal/adapters/js/crypto.js` is a NEW reconstruction (Ed25519, sorted-key JSON). Compatibility with signatures made by the original system is **UNVERIFIED / BLOCKED** until the original `crypto.js` is supplied |
+| `crypto.js` (imported by both files) | Missing from the archive; the owner has no copy and no licenses were issued before. `ctal/adapters/js/crypto.js` therefore **defines** the signature format (Ed25519 over sorted-key compact JSON, base64url, PEM keys). PROVEN: an independent Python re-implementation verifies JS-issued licenses and rejects tampered ones. Only caveat: licenses signed elsewhere by a different `crypto.js` would not verify |
 | Detection accuracy of AQPD rules | UNTESTED; no claim (4 regex rules, trivially evadable by paraphrase) |
 
 ## Status mapping
@@ -17,16 +17,16 @@ CLES: tenant→license `subject`. `LICENSE_VALID→AUTHORIZED`; `UNKNOWN_ISSUER_
 
 ## Findings in the supplied code (not modified; mitigated in the adapter where noted)
 1. **CLES.verify fails open on omitted scope arguments**: each of `subject/product/deployment/feature` is checked only if provided. Mitigated: bridge rejects requests missing any of them (tested).
-2. **`maxActivations` is never enforced** (no activation counter). Not mitigated; a license can be used any number of times (test documents it). SPECIFIED work.
+2. **`maxActivations` is never enforced by CLES.js** (no activation counter). Mitigated: the verifier reports it and the gate enforces it per license/instance against the ledger (`activations` table, `ACTIVATION_LIMIT_EXCEEDED`). An activation = a distinct `instance_id` (request field; defaults to the calling API key).
 3. **AQPD.js runs every regex over the full input even after flagging `INPUT_TOO_LARGE`.** Mitigated: adapter rejects over `max_bytes` (≤262,144) before calling.
 4. **Invalid UTF-8 is silently replaced** before matching. Mitigated: adapter rejects it.
 5. `LICENSE_NOT_CURRENT` conflates expired and not-yet-valid. Mitigated in mapping.
-6. Revocations are an in-memory Set with no persistence/feed; keys have no status/validity metadata. Mitigated: adapter supplies a revocation list per call and key statuses from CTAL config. Live revocation service remains BLOCKED.
-7. Signature scope/canonicalization lives in the missing `crypto.js`; cannot be reviewed.
+6. Revocations are an in-memory Set; keys have no status/validity metadata. Mitigated: permanent, tenant-scoped revocations are stored in the ledger and checked live on every decision (`POST /v1/revocations`), plus an optional file list; key statuses come from CTAL config. An external issuer-side revocation feed is not integrated (none exists).
+7. Signature scope/canonicalization lives in `crypto.js` (now defined and tested, see above).
 8. `AQPD.assess` requires `source`; CTAL passes the fixed label `ctal-gate` (a missing source adds 25 points → review).
 
 ## Operational notes
 Each call spawns Node (hard timeout 5 s, process killed, 1 MB output cap, only `PATH` in the environment); expect tens of milliseconds of overhead. Private AQPD signing key is read from a PEM path by the Node process; keep it 0600 and outside the repository. CI installs Node 22 and sets `CTAL_REQUIRE_NODE=1` so missing Node fails instead of skipping.
 
-## To fully unblock
-Supply the original `crypto.js` (and ideally the originals' tests and any sample issued licenses/assessments); re-run `ctal/tests/test_js_adapters.py` against it and against real license fixtures.
+## Remaining
+Provenance of the two files as "the production versions" is still unverified. If licenses signed by another system exist, supply a sample to test compatibility.

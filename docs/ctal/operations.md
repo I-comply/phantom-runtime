@@ -9,9 +9,16 @@ export CTAL_EXPORT_KEY=/etc/ctal/export.pem      CTAL_EXPORT_KEY_ID=prod-export-
 export CTAL_ISSUER_TRUST=/etc/ctal/issuers.json  CTAL_REVOKED_LICENSES=/etc/ctal/revoked.json
 python3 -m ctal migrate up
 python3 -m ctal create-api-key <tenant> admin <label>     # printed once; stored hashed
-python3 -m ctal serve --host 127.0.0.1 --port 8080        # put TLS + rate limiting in front
+python3 -m ctal serve --host 0.0.0.0 --port 8443 --tls-cert /etc/ctal/tls.pem --tls-key /etc/ctal/tls.key
+#   or --behind-tls-proxy when a proxy terminates TLS; production refuses to start with neither
+#   --rate-limit 60,20 (default: 60-request burst, 20/s refill, per API key; per address before auth); --rate-limit off disables
 ```
 Production refuses: missing key files (no auto-generate), key ids starting `dev-`, key files readable by group/other. Generate production keys outside the repo with a maintained tool (e.g. `openssl genpkey -algorithm ed25519 -out envelope.pem`; `chmod 600`) or, preferably, a KMS/HSM (not integrated: BLOCKED).
+
+## Revocation, activations, release provenance
+- Revoke a license permanently for a tenant: `POST /v1/revocations {"license_id","reason"}` (admin); effective on the next decision, recorded in the ledger.
+- `maxActivations` is enforced per license against distinct `instance_id` values (default: the calling API key).
+- `python3 -m ctal release-manifest --out m.json` writes a signed source manifest + CycloneDX SBOM (export key); `python3 -m ctal release-verify m.json --pin-export-key-id=ID --pin-export-public-key=KEY` checks signature, digests and that this tree matches. Envelope `software_release_digest` equals the manifest `release_digest`.
 
 ## Health
 `/healthz` (process), `/readyz` (schema migrated). Request logs are one JSON line without bodies or tokens.
@@ -28,7 +35,7 @@ Entitlement issuer keys: add the new key to `CTAL_ISSUER_TRUST` (overlap), later
 Backup: `Store.backup_to(dest)` (SQLite online backup API, consistent while serving). Restore: stop service, copy backup over `CTAL_DB`, start, call `TenantLedger.verify_chain()` per tenant (tested). Back up key files separately and encrypted. Restore drill not performed on production-like infrastructure (UNTESTED).
 
 ## Migration rollback
-`python3 -m ctal migrate down --version 0001_init` drops all CTAL tables (destructive: take a backup first). Migrations are additive and versioned in `ctal/migrations/`.
+`python3 -m ctal migrate down --version 0002_online` (then `0001_init`) drops those tables (destructive: take a backup first). Migrations: `0001_init` (core), `0002_online` (revocations, activations, regression cases). Migrations are additive and versioned in `ctal/migrations/`.
 
 ## Incident response (first hour)
 1. Contain: revoke affected API keys (`Store.revoke_api_key`), revoke suspect signing keys. 2. Preserve: copy DB + WAL, prior exports. 3. Verify: `verify_chain()` for each tenant; run the offline verifier on the latest export and compare against the last export held by the customer. 4. Scope: query events by time range / correlation id. 5. Communicate; document in the ledger via `remediation_created` (event type reserved; not automated).

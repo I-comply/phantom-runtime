@@ -27,7 +27,8 @@ from .timeutil import fmt_ts, now_utc, parse_ts
 
 EVENT_SCHEMA = "ctal.event.v1"
 GENESIS = "0" * 64
-ROLES = {"gate": {"gate"}, "auditor": {"read", "export"}, "admin": {"gate", "read", "export", "admin"}}
+ROLES = {"gate": {"gate"}, "auditor": {"read", "export"}, "reviewer": {"read", "propose"},
+         "admin": {"gate", "read", "export", "propose", "admin"}}
 IN_PROGRESS_LEASE_SECONDS = 60
 _MIG_DIR = os.path.join(os.path.dirname(__file__), "migrations")
 
@@ -41,6 +42,7 @@ class AuthContext:
     tenant_id: str
     role: str
     label: str
+    principal: str = ""     # stable id of the API key (hash prefix); never the secret
 
     def allows(self, perm: str) -> bool:
         return perm in ROLES.get(self.role, set())
@@ -139,11 +141,12 @@ class Store:
             return None
         c = self.connect()
         try:
+            kh = hashlib.sha256(token.encode()).hexdigest()
             r = c.execute("SELECT tenant_id, role, label FROM api_keys WHERE key_hash=? AND revoked_at IS NULL",
-                          (hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
+                          (kh,)).fetchone()
         finally:
             c.close()
-        return AuthContext(r["tenant_id"], r["role"], r["label"]) if r else None
+        return AuthContext(r["tenant_id"], r["role"], r["label"], kh[:16]) if r else None
 
     def for_tenant(self, auth: AuthContext) -> "TenantLedger":
         return TenantLedger(self, auth.tenant_id)
@@ -378,3 +381,99 @@ class TenantLedger:
             c.execute("INSERT INTO checkpoints VALUES (?,?,?,?,?,?)",
                       (self.tenant_id, r["n"], body["head_seq"], body["head_hash"], canonical_bytes(body).decode(),
                        body["issued_at"]))
+
+    # ---- revocations (live, permanent) ----
+    def revoke_license(self, license_id: str, reason: str, actor: str, correlation_id: str) -> None:
+        if not isinstance(license_id, str) or not license_id or len(license_id) > 128:
+            raise ValueError("BAD_LICENSE_ID")
+        with self.store.tx() as c:
+            c.execute("INSERT OR IGNORE INTO revocations VALUES (?,?,?,?,?)",
+                      (self.tenant_id, license_id, str(reason)[:200], fmt_ts(self.store.clock()), actor))
+            self.append([self.new_event("entitlement_denied", actor=actor, correlation_id=correlation_id,
+                                        outcome="REVOKED", reason_codes=["LICENSE_REVOKED_BY_ADMIN"],
+                                        payload={"license_id": license_id})], c)
+
+    def is_revoked(self, license_id: str) -> bool:
+        c = self.store.connect()
+        try:
+            return c.execute("SELECT 1 FROM revocations WHERE tenant_id=? AND license_id=?",
+                             (self.tenant_id, license_id)).fetchone() is not None
+        finally:
+            c.close()
+
+    # ---- activations ----
+    def register_activation(self, license_id: str, instance_id: str, max_activations: int) -> bool:
+        """True if this instance is (or becomes) one of at most ``max_activations`` instances of the license."""
+        with self.store.tx() as c:
+            if c.execute("SELECT 1 FROM activations WHERE tenant_id=? AND license_id=? AND instance_id=?",
+                         (self.tenant_id, license_id, instance_id)).fetchone():
+                return True
+            n = c.execute("SELECT COUNT(*) FROM activations WHERE tenant_id=? AND license_id=?",
+                          (self.tenant_id, license_id)).fetchone()[0]
+            if n >= max_activations:
+                return False
+            c.execute("INSERT INTO activations VALUES (?,?,?,?)",
+                      (self.tenant_id, license_id, instance_id, fmt_ts(self.store.clock())))
+            return True
+
+    # ---- regression cases (human-approved) ----
+    def propose_case(self, *, content: bytes, media_type: str, expected_status: str, incident_ref: str,
+                     provenance: dict, auth: "AuthContext", correlation_id: str) -> dict:
+        from .contracts import AQPD_STATUSES
+        if expected_status not in AQPD_STATUSES or not isinstance(content, bytes) or not 0 < len(content) <= 65_536 \
+                or not incident_ref or len(incident_ref) > 200:
+            raise ValueError("BAD_CASE")
+        case_id = "case-" + uuid.uuid4().hex
+        digest = sha256_hex(content)
+        import base64
+        with self.store.tx() as c:
+            c.execute("INSERT INTO regression_cases VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL)",
+                      (self.tenant_id, case_id, "proposed", base64.b64encode(content).decode(), media_type or "",
+                       digest, expected_status, incident_ref, canonical_bytes(provenance).decode(), auth.label,
+                       auth.principal, fmt_ts(self.store.clock())))
+            self.append([self.new_event("remediation_created", actor=auth.label, correlation_id=correlation_id,
+                                        subject_digest=digest, reason_codes=["REGRESSION_CASE_PROPOSED"],
+                                        payload={"case_id": case_id, "incident_ref": incident_ref,
+                                                 "expected_status": expected_status})], c)
+        return {"case_id": case_id, "status": "proposed", "content_digest": digest}
+
+    def decide_case(self, case_id: str, approve: bool, note: str, auth: "AuthContext", correlation_id: str) -> dict:
+        if not auth.allows("admin"):
+            raise TenantAccessError("FORBIDDEN")
+        with self.store.tx() as c:
+            r = c.execute("SELECT * FROM regression_cases WHERE tenant_id=? AND case_id=?",
+                          (self.tenant_id, case_id)).fetchone()
+            if r is None:
+                raise KeyError("CASE_NOT_FOUND")
+            if r["status"] != "proposed":
+                raise ValueError("CASE_ALREADY_DECIDED")
+            if r["proposed_by_principal"] == auth.principal:
+                raise TenantAccessError("SELF_APPROVAL_NOT_ALLOWED")
+            status = "approved" if approve else "rejected"
+            c.execute("UPDATE regression_cases SET status=?, decided_by=?, decided_at=?, decision_note=? "
+                      "WHERE tenant_id=? AND case_id=?",
+                      (status, auth.label, fmt_ts(self.store.clock()), str(note)[:500], self.tenant_id, case_id))
+            if approve:
+                self.append([self.new_event("regression_case_added", actor=auth.label, correlation_id=correlation_id,
+                                            subject_digest=r["content_digest"], reason_codes=["REGRESSION_CASE_APPROVED"],
+                                            payload={"case_id": case_id, "expected_status": r["expected_status"],
+                                                     "proposed_by": r["proposed_by"]})], c)
+        return {"case_id": case_id, "status": status}
+
+    def cases(self, status: Optional[str] = None) -> List[dict]:
+        import base64
+        c = self.store.connect()
+        try:
+            q, a = "SELECT * FROM regression_cases WHERE tenant_id=?", [self.tenant_id]
+            if status:
+                q += " AND status=?"
+                a.append(status)
+            out = []
+            for r in c.execute(q + " ORDER BY proposed_at, case_id", a):
+                d = dict(r)
+                d["content"] = base64.b64decode(d.pop("content_b64"))
+                d["provenance"] = json.loads(d["provenance"])
+                out.append(d)
+            return out
+        finally:
+            c.close()

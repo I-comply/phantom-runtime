@@ -2,7 +2,7 @@
 
 Implementation of directive CH-CTAL-001 in `ctal/`. Status vocabulary: PROVEN, FAILED, BLOCKED, UNTESTED, SPECIFIED.
 
-**AQPD / CLES:** neither was in this repository (searched this repo, the last 50 commits, and `I-comply/agent-trust-layer`). CTAL defines the contracts (`ctal/aqpd.py`, `ctal/cles.py`) and ships labelled *reference* engines. The user later supplied `AQPD.js` and `CLES.js`; they are integrated through a Node bridge ([js-integration.md](js-integration.md), `CTAL_ENGINE=js`). Their dependency `crypto.js` was missing, so a reconstruction is used and compatibility with already-issued licenses is **UNVERIFIED**; provenance as "the production code" is unverified.
+**AQPD / CLES:** neither was in this repository (searched this repo, the last 50 commits, and `I-comply/agent-trust-layer`). CTAL defines the contracts (`ctal/aqpd.py`, `ctal/cles.py`) and ships labelled *reference* engines. The user later supplied `AQPD.js` and `CLES.js`; they are integrated through a Node bridge ([js-integration.md](js-integration.md), `CTAL_ENGINE=js`). Their dependency `crypto.js` does not exist anywhere (no copy, no licenses issued before), so `ctal/adapters/js/crypto.js` now defines the signature format and is cross-checked by an independent Python implementation. Provenance of the files as "the production code" is unverified.
 
 | Doc | Content |
 |---|---|
@@ -20,7 +20,7 @@ Implementation of directive CH-CTAL-001 in `ctal/`. Status vocabulary: PROVEN, F
 
 ```bash
 pip install -r ctal/requirements.txt
-python3 -m unittest discover -s ctal/tests -t .      # 79 tests
+python3 -m unittest discover -s ctal/tests -t .      # 92 tests
 python3 -m ctal demo                                  # gate -> ledger -> signed export -> offline verify -> tamper check
 ```
 

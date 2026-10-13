@@ -131,7 +131,7 @@ class JsClesVerifier:
     """ClesVerifier backed by CLES.js. tenant_id is mapped to the license ``subject``.
 
     keys: {key_id: {"pem": <SPKI public PEM>, "status": "active"|"retired"|"revoked"}}; revoked keys are withheld
-    from CLES.js so licenses signed by them fail. maxActivations is NOT enforced (CLES.js has no activation tracking).
+    from CLES.js so licenses signed by them fail. maxActivations is reported and enforced by the gate.
     """
     def __init__(self, bridge: NodeBridge, issuer: str, keys: dict, deployment: str, feature: str,
                  revoked_provider: Callable[[], Iterable[str]] = lambda: (), clock: Callable = now_utc):
@@ -182,8 +182,10 @@ class JsClesVerifier:
         s = out.get("license") if isinstance(out.get("license"), dict) else None
         common = {}
         if s:
+            ma = s.get("maxActivations")
             common = dict(license_id=str(s.get("licenseId")), product_id=product_id, issuer_id=str(s.get("issuer")),
-                          key_id=str(s.get("keyId")), valid_from=_iso_ms(s.get("notBefore")), valid_until=_iso_ms(s.get("expiresAt")))
+                          key_id=str(s.get("keyId")), valid_from=_iso_ms(s.get("notBefore")), valid_until=_iso_ms(s.get("expiresAt")),
+                          max_activations=ma if isinstance(ma, int) and not isinstance(ma, bool) and ma >= 1 else None)
         stamp = fmt_ts(now)
         if code == "LICENSE_VALID" and out["result"].get("authorized") is True and s:
             return ClesResult("AUTHORIZED", ["ENTITLEMENT_VALID"], revocation_checked_at=stamp, **common)

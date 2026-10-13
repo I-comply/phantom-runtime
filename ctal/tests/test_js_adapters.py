@@ -1,4 +1,5 @@
 """AQPD.js / CLES.js (as supplied) through the CTAL contracts. Requires Node; set CTAL_REQUIRE_NODE=1 to make absence a failure."""
+import base64
 import json
 import os
 import shutil
@@ -180,14 +181,43 @@ class JsClesTests(JsBase):
             out = self.bridge.call(req)
             self.assertEqual((out["ok"], out["error"]), (False, "BAD_REQUEST:" + missing))
 
-    def test_max_activations_not_enforced_documented_gap(self):
+    def test_verifier_alone_does_not_count_activations_but_reports_the_limit(self):
+        """CLES.js has no activation tracking; the verifier reports max_activations and the gate enforces it (test_gate_enforces_*)."""
         t = self.lic()
         self.assertEqual(t["maxActivations"], 1)
+        self.assertEqual(self.v(t).max_activations, 1)
         self.assertEqual(self.v(t).authorization_status, "AUTHORIZED")
-        self.assertEqual(self.v(t).authorization_status, "AUTHORIZED")   # a second use is still authorized: gap, see docs
+        self.assertEqual(self.v(t).authorization_status, "AUTHORIZED")
+
+    def test_signature_format_is_independently_reproducible_in_python(self):
+        """crypto.js defines the format: Ed25519 over sorted-key compact JSON. Python re-implements it from scratch."""
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        t = self.lic()
+        sig = t.pop("signature")
+        msg = json.dumps(t, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+        pub = serialization.load_pem_public_key(self.c_pub.encode())
+        pub.verify(base64.urlsafe_b64decode(sig + "=" * (-len(sig) % 4)), msg)       # raises InvalidSignature on mismatch
+        self.assertIsInstance(pub, Ed25519PublicKey)
+        t["product"] = "tampered"
+        with self.assertRaises(Exception):
+            pub.verify(base64.urlsafe_b64decode(sig + "=" * (-len(sig) % 4)),
+                       json.dumps(t, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode())
 
 
 class JsEndToEnd(JsBase):
+    def test_gate_enforces_max_activations_for_cles_js_licenses(self):
+        w = World(aqpd=self.aqpd, aqpd_timeout=10)
+        w.gate = Gate(w.store, self.aqpd, self.cles, w.env_s, w.public, release_digest="a" * 64, aqpd_timeout=10, clock=w.clock)
+        self.clock.t = w.clock.t
+        tok = json.dumps(self.lic()).encode()                      # maxActivations = 1
+        first = w.run(token=tok, idem="i1", instance_id="host-a")["envelope"]
+        second = w.run(token=tok, idem="i2", instance_id="host-b")["envelope"]
+        again = w.run(token=tok, idem="i3", instance_id="host-a")["envelope"]
+        self.assertEqual(first["decision"]["outcome"], "PROCEED")
+        self.assertEqual((second["cles"]["reason_codes"], second["decision"]["outcome"]), (["ACTIVATION_LIMIT_EXCEEDED"], "BLOCK"))
+        self.assertEqual(again["decision"]["outcome"], "PROCEED")
+
+
     def test_gate_with_real_js_engines_and_offline_export(self):
         w = World(aqpd=self.aqpd, aqpd_timeout=10)
         w.gate = Gate(w.store, self.aqpd, self.cles, w.env_s, w.public, release_digest="a" * 64, aqpd_timeout=10, clock=w.clock)

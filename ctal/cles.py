@@ -37,6 +37,7 @@ class ClesResult:
     valid_from: Optional[str] = None
     valid_until: Optional[str] = None
     revocation_checked_at: Optional[str] = None
+    max_activations: Optional[int] = None     # not part of the envelope; enforced by the gate
 
     def __post_init__(self):
         if self.authorization_status not in CLES_STATUSES:
@@ -110,15 +111,21 @@ class ClesVerifier:
         except Exception:
             return ClesResult("ERROR", ["REVOCATION_CHECK_FAILED"], entitlement_checked=False, **common)
         stamp = fmt_ts(now)
+        ma = payload.get("max_activations")
+        if isinstance(ma, int) and not isinstance(ma, bool) and ma >= 1:
+            common["max_activations"] = ma
         if revoked:
             return ClesResult("REVOKED", ["ENTITLEMENT_REVOKED"], revocation_checked_at=stamp, **common)
         return ClesResult("AUTHORIZED", ["ENTITLEMENT_VALID"], revocation_checked_at=stamp, **common)
 
 
-def issue_entitlement(signer, *, license_id, tenant_id, product_id, issuer_id, valid_from, valid_until) -> bytes:
+def issue_entitlement(signer, *, license_id, tenant_id, product_id, issuer_id, valid_from, valid_until,
+                      max_activations=None) -> bytes:
     """Issuer-side helper (used by tests/demo; real issuance belongs in the licensing service)."""
     payload = {"schema_version": ENTITLEMENT_SCHEMA, "license_id": license_id, "tenant_id": tenant_id,
                "product_id": product_id, "issuer_id": issuer_id, "valid_from": valid_from, "valid_until": valid_until}
+    if max_activations is not None:
+        payload["max_activations"] = max_activations
     tok = {"payload": payload, "signing": {"algorithm": ALGORITHM, "key_id": signer.key_id,
                                            "signature": signer.sign(canonical_bytes(payload))}}
     return canonical_bytes(tok)

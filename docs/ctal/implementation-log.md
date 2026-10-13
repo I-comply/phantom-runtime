@@ -14,6 +14,7 @@
 | 10 | API + CLI + demo | `ctal/server.py config.py __main__.py demo.py` | |
 | 11 | Tests | `ctal/tests/*` | 65 tests |
 | 13 | Supplied `AQPD_CLES_Two_Implementations.zip` integrated | `ctal/adapters/*`, `tests/test_js_adapters.py`, `docs/ctal/js-integration.md` | 79 tests OK; originals byte-identical; crypto.js reconstructed |
+| 14 | "Bring everything online" round: crypto.js format fixed + cross-checked; activation limits; live revocation; incident→regression (two-person rule) + replay; metrics; license expiry query; TLS, rate limiting, traceparent; release manifest + SBOM | `ctal/metrics.py release.py`, `migrations/0002_online.*`, `server.py`, `store.py`, `gate.py`, `tests/test_online.py` | 92 tests OK (3.13, 3.12); not built: PostgreSQL backend, KMS/HSM, deployment |
 | 12 | CI, docs | `.github/workflows/ctal.yml`, `docs/ctal/*` | CI not yet run on GitHub when written |
 
 ## Final local runs (Python 3.13.16)

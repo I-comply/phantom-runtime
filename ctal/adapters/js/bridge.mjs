@@ -41,7 +41,7 @@ try {
     const result = cles.verify(req.license, { subject: req.subject, product: req.product, feature: req.feature, deployment: req.deployment, now: req.now });
     const l = req.license;
     const summary = PRE_SIGNATURE.has(result.code) ? null : {
-      licenseId: l.licenseId, issuer: l.issuer, keyId: l.keyId, notBefore: l.notBefore, expiresAt: l.expiresAt,
+      licenseId: l.licenseId, issuer: l.issuer, keyId: l.keyId, notBefore: l.notBefore, expiresAt: l.expiresAt, maxActivations: l.maxActivations,
       expired: Number.isSafeInteger(l.expiresAt) && l.expiresAt <= req.now
     };
     done({ ok: true, result, license: summary });

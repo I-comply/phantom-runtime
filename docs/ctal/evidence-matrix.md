@@ -1,8 +1,8 @@
 # Evidence matrix
 
-"Tests passed" = run in this environment (Python 3.13.16): `python3 -W error::ResourceWarning -m unittest discover -s ctal/tests -t .` → **79 tests, OK** (13 of them exercise the supplied AQPD.js/CLES.js through a Node bridge; Node v22.22.0); also OK on Python 3.12 (64 run + 1 skipped because `jsonschema` not installed in that interpreter). Python 3.9/3.11: UNTESTED (3.9 absent; 3.11's system `cryptography` package is broken, environmental). Syntax-only parse for 3.9 passed.
+"Tests passed" = run in this environment (Python 3.13.16): `python3 -W error::ResourceWarning -m unittest discover -s ctal/tests -t .` → **92 tests, OK** (16 exercise the supplied AQPD.js/CLES.js through a Node bridge; Node v22.22.0); also OK on Python 3.12 (64 run + 1 skipped because `jsonschema` not installed in that interpreter). Python 3.9/3.11: UNTESTED (3.9 absent; 3.11's system `cryptography` package is broken, environmental). Syntax-only parse for 3.9 passed.
 
-Scope caveat: AT-01..06 are proven twice: against the **reference** engines written in this change (`test_aqpd.py`, `test_cles.py`) and against the **supplied AQPD.js/CLES.js** (`test_js_adapters.py`). The JS runs use a *reconstructed* `crypto.js` (original missing), so compatibility with previously issued signatures is UNVERIFIED; that the JS files are the production versions is unverified. See js-integration.md for 8 findings (e.g. CLES.verify skips omitted scope checks; maxActivations unenforced).
+Scope caveat: AT-01..06 are proven twice: against the **reference** engines written in this change (`test_aqpd.py`, `test_cles.py`) and against the **supplied AQPD.js/CLES.js** (`test_js_adapters.py`). The JS runs use `crypto.js` as defined in this repo (original unavailable, nothing issued before; format cross-checked independently in Python). That the JS files are the production versions is unverified. See js-integration.md for 8 findings and their mitigations.
 
 | Req | Implementation (new code) | Tests | Status |
 |---|---|---|---|
@@ -30,7 +30,13 @@ Scope caveat: AT-01..06 are proven twice: against the **reference** engines writ
 | Key lifecycle (rotate/revoke, no unknown keys, prod refuses dev keys) | `gate.rotate_envelope_key/revoke_key`, `config.py` | `test_server.test_key_rotation_and_revocation_lifecycle`, `test_hygiene.test_production_*` | PROVEN. KMS/HSM integration: **BLOCKED** (no KMS available; PEM file boundary only) |
 | One runnable workflow | `ctal/server.py`, `ctal/demo.py` ("content-release gate") | `python3 -m ctal demo` (exit 0); `test_server.py` | PROVEN as local demonstration. **Not deployed** |
 | CI | `.github/workflows/ctal.yml` | not yet executed on GitHub at time of writing | UNTESTED (see PR checks) |
-| Observability | structured request logs (no bodies/tokens), `/healthz`, `/readyz`, `/v1/metrics` | `test_server.py` | PROVEN basic; OpenTelemetry export not implemented (SPECIFIED) |
-| P1: incident→regression, release provenance/SBOM, value metrics, license reminders | — | — | SPECIFIED, not implemented (release digest is a source-tree sha256, not an attestation) |
+| Observability | structured request logs (no bodies/tokens) with trace id, `/healthz`, `/readyz`, `/v1/metrics`, `/v1/metrics/summary` | `test_server.py`, `test_online.py` | PROVEN basic; OTLP exporter not implemented (SPECIFIED) |
+| Activation limits (`maxActivations`) | `store.register_activation`, `gate._ledger_entitlement_checks` | `test_online.ActivationAndRevocation`, `test_js_adapters.test_gate_enforces_*` | PROVEN |
+| Live, permanent, tenant-scoped license revocation (admin API) | `store.revoke_license`, `POST /v1/revocations` | `test_online.test_live_revocation_*` | PROVEN. Issuer-side external feed: none exists |
+| P1 Incident→regression with human approval (two-person rule), frozen content, replay against policy versions | `store.propose_case/decide_case`, `/v1/incidents`, `/v1/regressions*` | `test_online.RegressionFlow` | PROVEN. Stores reviewer-supplied sample content (≤64 KiB) by design; list API returns digests only |
+| P1 Release provenance + SBOM | `ctal/release.py`, CLI `release-manifest` / `release-verify` | `test_online.ReleaseProvenance` | PROVEN as signed source-tree manifest + CycloneDX subset; NOT a hermetic build attestation (SLSA) |
+| P1 Value metrics (decisions, rates, p50/p95 gate latency, regression counts) | `ctal/metrics.py`, `/v1/metrics/summary` | `test_online.MetricsAndReminders` | PROVEN for ledger-derivable metrics; coverage, review time, accuracy NOT computable here |
+| P1 License expiry reminders | `metrics.expiring_licenses`, `/v1/licenses/expiring` | `test_online.MetricsAndReminders` | PROVEN as a query; no notification delivery (no mail/webhook channel configured) |
+| TLS (≥1.2), per-key and per-address rate limiting, W3C `traceparent` correlation | `server.py`, CLI flags | `test_online.Transport` | PROVEN locally; production serve refuses to run without TLS or `--behind-tls-proxy` |
 | P2: cross-customer intelligence | — | — | Deferred; disabled (no code) |
 | Commercial validation (buyer, budget owner, recurring cost) | — | — | **UNTESTED**: no buyer conversations performed |

@@ -12,6 +12,7 @@ from __future__ import annotations
 import concurrent.futures
 import os
 import re
+import time
 from typing import Callable, Optional
 
 from .aqpd import AqpdEngine, AqpdResult
@@ -33,11 +34,6 @@ class GateError(Exception):
         self.code, self.http = code, http
 
 
-def _rb(path):
-    with open(path, "rb") as f:
-        return f.read()
-
-
 def source_release_digest() -> str:
     """sha256 over the CTAL source tree (a source digest, NOT a signed build attestation)."""
     forced = os.environ.get("CTAL_RELEASE_DIGEST")
@@ -45,15 +41,8 @@ def source_release_digest() -> str:
         if not re.match(r"^[0-9a-f]{64}$", forced):
             raise ValueError("CTAL_RELEASE_DIGEST must be 64 lowercase hex chars")
         return forced
-    root = os.path.dirname(__file__)
-    parts = []
-    for d, dirs, files in os.walk(root):
-        dirs[:] = sorted(x for x in dirs if x not in ("__pycache__", "tests"))
-        for f in sorted(files):
-            if f.endswith((".py", ".sql", ".json", ".js", ".mjs")):
-                p = os.path.join(d, f)
-                parts.append(os.path.relpath(p, root).replace(os.sep, "/") + ":" + sha256_hex(_rb(p)))
-    return sha256_hex("\n".join(parts).encode())
+    from .release import tree_digest
+    return tree_digest()
 
 
 class Gate:
@@ -66,6 +55,29 @@ class Gate:
         self.aqpd_timeout, self.clock = aqpd_timeout, clock
         self.decision_policy = decision_policy or DEFAULT_DECISION_POLICY
         self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="aqpd")
+
+    @staticmethod
+    def _ledger_entitlement_checks(led: TenantLedger, cl: ClesResult, inst: str) -> ClesResult:
+        """Live revocation (admin-managed, permanent) and activation limits (maxActivations), applied to any engine."""
+        if cl.authorization_status != "AUTHORIZED":
+            return cl
+        keep = {k: getattr(cl, k) for k in ("license_id", "product_id", "issuer_id", "key_id", "valid_from", "valid_until",
+                                            "revocation_checked_at", "max_activations")}
+        try:
+            if cl.license_id and led.is_revoked(cl.license_id):
+                return ClesResult("REVOKED", ["ENTITLEMENT_REVOKED"], **keep)
+            if cl.max_activations and cl.license_id and not led.register_activation(cl.license_id, inst, cl.max_activations):
+                return ClesResult("DENIED", ["ACTIVATION_LIMIT_EXCEEDED"], **keep)
+        except Exception:
+            return ClesResult("ERROR", ["ENTITLEMENT_LEDGER_CHECK_FAILED"], entitlement_checked=False)
+        return cl
+
+    def assess_only(self, led: TenantLedger, content: bytes, media_type: str, policy_id: str, version: Optional[int] = None):
+        """AQPD only, no entitlement, no envelope, no side effect (used for regression replay)."""
+        pol = led.get_policy(policy_id, version)
+        if pol is None:
+            raise GateError("POLICY_NOT_FOUND", 422)
+        return pol, self._run_aqpd(content, media_type, pol)
 
     def rotate_envelope_key(self, new_signer: Signer, ledgers, actor: str) -> None:
         """Overlapping rotation: old key becomes 'retired' (still verifies), new key signs from now on."""
@@ -103,7 +115,8 @@ class Gate:
         return r
 
     def process(self, auth: AuthContext, *, content, media_type: str, entitlement_token, product_id: str,
-                policy_id: str, idempotency_key: str, correlation_id: str, claimed_tenant: Optional[str] = None) -> dict:
+                policy_id: str, idempotency_key: str, correlation_id: str, claimed_tenant: Optional[str] = None,
+                instance_id: Optional[str] = None) -> dict:
         if not auth.allows("gate"):
             raise GateError("FORBIDDEN", 403)
         led = self.store.for_tenant(auth)
@@ -132,13 +145,15 @@ class Gate:
         if state == "replay":
             return {"replayed": True, "envelope": led.get_envelope(env_id)}
         try:
+            inst = instance_id if isinstance(instance_id, str) and _IDEM.match(instance_id) else auth.principal
             return self._decide(led, auth, content, media_type, token_b, product_id, pol, idempotency_key,
-                                correlation_id)
+                                correlation_id, inst)
         except BaseException:
             led.release(idempotency_key)
             raise
 
-    def _decide(self, led: TenantLedger, auth, content, media_type, token_b, product_id, pol, idem, corr) -> dict:
+    def _decide(self, led: TenantLedger, auth, content, media_type, token_b, product_id, pol, idem, corr, inst) -> dict:
+        t0 = time.monotonic()
         digest = sha256_hex(content)
         aq = self._run_aqpd(content, media_type, pol)
         try:
@@ -147,6 +162,7 @@ class Gate:
                 raise TypeError("invalid CLES result")
         except Exception:
             cl = ClesResult("ERROR", ["CLES_ADAPTER_FAILURE"], entitlement_checked=False)
+        cl = self._ledger_entitlement_checks(led, cl, inst)
         bundle = digest_obj({"aqpd_policy_digest": pol["digest"], "decision_policy": self.decision_policy})
         env = build_and_sign(
             tenant_id=auth.tenant_id, subject_digest=digest, media_type=media_type or None,
@@ -170,12 +186,13 @@ class Gate:
                           payload={"assessment_id": aq.assessment_id, "engine_version": aq.engine_version}, **common),
             led.new_event("entitlement_verified" if cl.authorization_status == "AUTHORIZED" else "entitlement_denied",
                           outcome=cl.authorization_status, reason_codes=cl.reason_codes,
-                          payload={"license_id": cl.license_id or "", "key_id": cl.key_id or ""}, **common),
+                          payload={"license_id": cl.license_id or "", "key_id": cl.key_id or "", "valid_until": cl.valid_until or ""}, **common),
             led.new_event("assurance_envelope_signed", policy_id=pol["policy_id"], policy_version=pol["version"],
                           release_digest=self.release_digest, outcome=outcome,
                           reason_codes=env["decision"]["reason_codes"],
                           payload={"envelope_id": env["envelope_id"], "envelope_digest": digest_obj(env),
-                                   "decision_policy": self.decision_policy}, **common),
+                                   "decision_policy": self.decision_policy,
+                                   "latency_ms": int((time.monotonic() - t0) * 1000)}, **common),
         ]
         with self.store.tx() as c:
             led.put_envelope(c, env)

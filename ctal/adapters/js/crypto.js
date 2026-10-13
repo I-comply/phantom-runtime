@@ -1,9 +1,9 @@
-// RECONSTRUCTED MODULE (new, written by the CTAL implementer).
-// AQPD.js and CLES.js import { sha256, signObject, verifyObject } from './crypto.js' but the original file was
-// NOT included in the supplied archive. This minimal version uses Node's built-in Ed25519 over a sorted-key
-// JSON serialization. It is NOT known to match the original canonicalization/signature encoding, so
-// signatures produced by the original system (existing licenses/assessments) are UNVERIFIED against it.
-// Replace with the original crypto.js when available and re-run ctal/tests.
+// crypto.js: signature format used by AQPD.js and CLES.js in CTAL.
+// The original module was not available, and no licenses had been issued before, so this file DEFINES the format:
+//   canonical(obj) = JSON with object keys sorted (code-unit order), no whitespace, undefined-valued keys omitted;
+//   signature      = base64url( Ed25519( UTF-8(canonical(payload)) ) ), keys as PEM (PKCS8 private / SPKI public).
+// Independent re-implementation + cross-check: ctal/tests/test_online.py (Python verifies JS-issued licenses).
+// If an existing deployment has licenses signed by a different original crypto.js, those will not verify here.
 import { createHash, createPrivateKey, createPublicKey, sign, verify } from 'node:crypto';
 
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');

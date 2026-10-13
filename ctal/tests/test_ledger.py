@@ -121,14 +121,18 @@ class LedgerTests(unittest.TestCase):
 
     def test_at14_migration_rollback_and_reapply(self):
         s = Store(os.path.join(self.w.tmp, "m.db"))
-        self.assertEqual(s.migrate_up(), ["0001_init"])
+        self.assertEqual(s.migrate_up(), ["0001_init", "0002_online"])
         self.assertEqual(s.migrate_up(), [])
+        self.assertEqual(s.schema_version(), "0002_online")
+        s.migrate_down("0002_online")
         self.assertEqual(s.schema_version(), "0001_init")
+        self.assertEqual(s.migrate_up(), ["0002_online"])
+        s.migrate_down("0002_online")
         s.migrate_down("0001_init")
         c = s.connect()
         self.assertEqual(c.execute("SELECT count(*) FROM sqlite_master WHERE name IN ('events','policies','api_keys')").fetchone()[0], 0)
         c.close()
-        self.assertEqual(s.migrate_up(), ["0001_init"])
+        self.assertEqual(s.migrate_up(), ["0001_init", "0002_online"])
 
     def test_at14_backup_restore_preserves_chain(self):
         bk = os.path.join(self.w.tmp, "backup.db")

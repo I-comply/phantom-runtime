@@ -1,6 +1,6 @@
 # CTAL: description and capabilities report
 
-Scope: state at commit `da295e5` on branch `ccr-fd981673-pt8zx2` (PR #39, draft). CI green on that commit (Python 3.9 and 3.12). Local: 80 tests OK (Python 3.13.16, Node 22.22.0). Status words: PROVEN, UNVERIFIED, BLOCKED, UNTESTED, SPECIFIED.
+Scope: state of the working tree after the "bring everything online" round (see git log); previously `da295e5` on branch `ccr-fd981673-pt8zx2` (PR #39, draft). CI was green on the previous commit (Python 3.9 and 3.12). Local: 92 tests OK (Python 3.13.16, Node 22.22.0). Status words: PROVEN, UNVERIFIED, BLOCKED, UNTESTED, SPECIFIED.
 
 ## 1. Description
 CTAL (Continuous Trust and Assurance Ledger) is a gate placed in front of a protected action, for example releasing content. For each request it runs two **separate** checks:
@@ -48,26 +48,32 @@ Proceeding on WARN is possible only through an explicit, versioned decision poli
 | Separate AQPD and CLES with typed statuses and reason codes | PROVEN | `test_aqpd`, `test_cles`, `test_js_adapters` |
 | Fail-closed orchestration (timeout, exception, invalid or wrong-policy result, signing failure) | PROVEN | `test_gate` |
 | Envelope signature covers every field; any change, addition, removal or algorithm/key swap fails | PROVEN | `test_envelope` |
-| Tenant isolation across API read, write, search and export; body-claimed tenant rejected | PROVEN (store, API, export; no background workers exist) | `test_ledger`, `test_server` |
+| Tenant isolation across API read, write, search, export; body-claimed tenant rejected | PROVEN (no background workers exist) | `test_ledger`, `test_server` |
 | Idempotent retry; concurrent duplicates yield one protected action | PROVEN (single-node SQLite) | `test_gate` |
-| Tamper evidence: edit, delete, reorder, substitute, truncate | PROVEN within the model | `test_ledger`, `test_export` (12 re-signed-manifest attacks) |
+| Tamper evidence: edit, delete, reorder, substitute, truncate | PROVEN within the model | `test_ledger`, `test_export` |
 | Offline verification with a pinned key; no private key or database | PROVEN locally | `test_export`, `python3 -m ctal demo` |
-| Immutable, versioned policies; old decisions stay tied to the version used | PROVEN | `test_ledger` |
-| Key rotation (overlap), revocation, production refuses `dev-` keys | PROVEN | `test_server`, `test_hygiene` |
-| Migration rollback; SQLite backup and restore with intact chain | PROVEN | `test_ledger` |
-| Supplied AQPD.js / CLES.js run through CTAL end to end | PROVEN | `test_js_adapters` (14 tests) |
-| Request limits, structured logs without bodies or tokens, health and readiness, admin metrics | PROVEN (basic) | `test_server` |
-| Python 3.9 and 3.12 | PROVEN in CI | PR checks |
+| Immutable versioned policies; old decisions stay tied to their version | PROVEN | `test_ledger` |
+| Key rotation, revocation; production refuses `dev-` keys | PROVEN | `test_server`, `test_hygiene` |
+| Migration rollback; SQLite backup/restore with intact chain | PROVEN | `test_ledger` |
+| Supplied AQPD.js / CLES.js end to end; signature format defined in `crypto.js` and independently reproduced in Python | PROVEN | `test_js_adapters` (16 tests) |
+| **License activation limits** (`maxActivations`) enforced per license and instance | PROVEN | `test_online`, `test_js_adapters` |
+| **Live, permanent, per-tenant license revocation** (admin API) | PROVEN | `test_online` |
+| **Incident-to-regression**: reviewer proposes, a *different* admin approves, content frozen, replay against any policy version catches regressions | PROVEN | `test_online.RegressionFlow` |
+| **Metrics** from the ledger: decisions, rates, gate latency p50/p95, regression counts | PROVEN (ledger-derivable metrics only) | `test_online` |
+| **License-expiry reminders** (query of licenses expiring within N days) | PROVEN as a query; nothing sends notifications | `test_online` |
+| **Signed release manifest + SBOM**, linked to the envelope release digest | PROVEN (source-tree manifest, not a build attestation) | `test_online.ReleaseProvenance` |
+| **TLS 1.2+**, per-key and per-address **rate limiting**, **W3C traceparent** correlation, production refuses to serve without TLS | PROVEN locally | `test_online.Transport` |
+| Python 3.9 and 3.12 | PROVEN in CI for the previous commit; re-check on the PR for this one | PR checks |
 
 ## 5. Limits (what it does not do)
 - **Chain alone does not stop a database admin** who rewrites history and recomputes every hash (a test demonstrates this). Customers must keep earlier signed exports.
 - The export key is the offline trust root. Whoever holds it can sign a complete forged export.
-- **Supplied JS engines:** `crypto.js` was missing; a labelled reconstruction is used, so compatibility with already-issued licenses is UNVERIFIED. That the files are the production versions is UNVERIFIED. `CLES.maxActivations` is not enforced. Revocations are a static list with no live feed. AQPD's 4 regex rules are easy to evade; detection accuracy is UNTESTED and no accuracy claim is made.
-- AQPD.js never emits WARN or QUARANTINE.
-- Signing keys are PEM files; KMS/HSM is BLOCKED (none available). No TLS, rate limiting, or PostgreSQL row-level security. One SQLite file holds all tenants.
+- **Supplied JS engines:** that they are the production versions is UNVERIFIED. AQPD's four regex rules are easy to evade; detection accuracy is UNTESTED and no accuracy claim is made. AQPD.js never emits WARN or QUARANTINE.
+- **Not built:** KMS/HSM signing (BLOCKED: no key vault available; keys are 0600 PEM files). PostgreSQL backend with row-level security (a PostgreSQL 16 server exists in the sandbox but is stopped; porting the storage layer is a separate piece of work; today one SQLite file holds all tenants). Notification delivery for expiring licenses. OpenTelemetry exporter (trace ids are propagated and logged). Retention and deletion procedure. Cross-customer intelligence (deferred by design).
 - External side effects are at-least-once; only the internal protected-action record is exactly-once.
-- Not implemented: incident-to-regression and replay (P1), release attestations or SBOM (release digest is a source-tree hash), value-metric collection, OpenTelemetry export, retention and deletion procedure, cross-customer intelligence (deferred, no code).
-- Not deployed: local demonstration only. Python 3.11 UNTESTED locally (broken system package).
+- Metrics that need customer data (coverage, manual review time, false positive/negative rates) cannot be computed by CTAL.
+- Regression cases store reviewer-supplied sample content (at most 64 KiB) so they can be replayed.
+- **Not deployed:** local demonstration only. Python 3.11 UNTESTED locally (broken system package).
 
 ## 6. Commercial status
 No buyer, budget owner, recurring cost or pilot has been validated. Candidate workflow: a content-release gate. Validation checklist: `docs/ctal/pilot-runbook.md`. No market, compliance, tamper-proof or accuracy claim is made.
@@ -75,7 +81,7 @@ No buyer, budget owner, recurring cost or pilot has been validated. Candidate wo
 ## 7. How to run
 ```bash
 pip install -r ctal/requirements.txt
-python3 -m unittest discover -s ctal/tests -t .     # 80 tests (Node required for the JS adapter tests)
+python3 -m unittest discover -s ctal/tests -t .     # 92 tests (Node required for the JS adapter tests)
 python3 -m ctal demo                                 # gate, ledger, signed export, offline verify, tamper check
 CTAL_ENV=development python3 -m ctal serve --port 8080
 ```
