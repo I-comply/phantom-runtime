@@ -12,6 +12,7 @@ Implementation of directive CH-CTAL-001 in `ctal/`. Status vocabulary: PROVEN, F
 | [architecture-and-threat-model.md](architecture-and-threat-model.md) | Data flow, trust model, what a privileged operator can still do |
 | [operations.md](operations.md) | Setup, config, key rotation, backup/restore, rollback, incident response |
 | [pilot-runbook.md](pilot-runbook.md) | Workflow, metric definitions, buyer-validation checklist |
+| [capabilities-report.md](capabilities-report.md) | Description and capabilities report |
 | [js-integration.md](js-integration.md) | Supplied AQPD.js/CLES.js: mapping, findings, gaps |
 | [implementation-log.md](implementation-log.md) | Commands, outputs, decisions, limitations |
 
