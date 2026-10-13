@@ -54,3 +54,9 @@ tmp/
 *.tar
 *.tar.gz
 *.tgz
+
+# CTAL local artifacts (never commit keys or databases)
+*.pem
+ctal.db
+ctal.db-*
+ctal-export-*.zip

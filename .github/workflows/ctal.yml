@@ -1,0 +1,27 @@
+name: ctal
+on:
+  push:
+    paths: ["ctal/**", "docs/ctal/**", ".github/workflows/ctal.yml"]
+  pull_request:
+    paths: ["ctal/**", "docs/ctal/**", ".github/workflows/ctal.yml"]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python }}" }
+      - run: pip install -r ctal/requirements.txt jsonschema
+      - name: Unit, integration and acceptance tests (AT-01..AT-14)
+        run: python -W error::ResourceWarning -m unittest discover -s ctal/tests -t .
+      - name: Secret-pattern scan
+        run: python ctal/tools/scan_secrets.py ctal docs/ctal
+      - name: End-to-end demo (includes offline export verification and tamper check)
+        run: python -m ctal demo
+      - name: Dependency inventory
+        run: pip freeze > ctal-deps.txt && cat ctal-deps.txt

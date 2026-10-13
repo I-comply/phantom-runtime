@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ctal.envelope.v1",
+  "title": "CTAL Assurance Envelope v1 (documentation of the contract; ctal/envelope.py:validate_schema is authoritative)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["envelope_id","schema_version","tenant_id","subject","aqpd","cles","policy_bundle_digest","software_release_digest","decision","issued_at","signing"],
+  "$defs": {
+    "hex64": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "ts": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"},
+    "strs": {"type": "array", "items": {"type": "string"}}
+  },
+  "properties": {
+    "envelope_id": {"type": "string", "minLength": 1},
+    "schema_version": {"const": "ctal.envelope.v1"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "subject": {"type": "object", "additionalProperties": false,
+      "required": ["digest_algorithm","digest","evidence_refs"],
+      "properties": {"digest_algorithm": {"const": "SHA-256"}, "digest": {"$ref": "#/$defs/hex64"},
+                     "media_type": {"type": "string"}, "evidence_refs": {"$ref": "#/$defs/strs"}}},
+    "aqpd": {"type": "object", "additionalProperties": false,
+      "required": ["assessment_id","status","policy_id","policy_version","engine_version","reason_codes","evidence_refs"],
+      "properties": {"assessment_id": {"type": "string"}, "status": {"enum": ["ACCEPT","WARN","QUARANTINE","REJECT","REVIEW","UNKNOWN","ERROR"]},
+                     "policy_id": {"type": "string"}, "policy_version": {"type": "integer"}, "engine_version": {"type": "string"},
+                     "reason_codes": {"$ref": "#/$defs/strs"}, "evidence_refs": {"$ref": "#/$defs/strs"}}},
+    "cles": {"type": "object", "additionalProperties": false,
+      "required": ["authorization_status","entitlement_checked","reason_codes"],
+      "properties": {"authorization_status": {"enum": ["AUTHORIZED","DENIED","EXPIRED","REVOKED","INVALID_SIGNATURE","UNKNOWN","ERROR"]},
+                     "license_id": {"type": "string"}, "product_id": {"type": "string"}, "entitlement_checked": {"type": "boolean"},
+                     "issuer_id": {"type": "string"}, "key_id": {"type": "string"}, "valid_from": {"type": "string"},
+                     "valid_until": {"type": "string"}, "revocation_checked_at": {"type": "string"},
+                     "reason_codes": {"$ref": "#/$defs/strs"}}},
+    "policy_bundle_digest": {"$ref": "#/$defs/hex64"},
+    "software_release_digest": {"$ref": "#/$defs/hex64"},
+    "decision": {"type": "object", "additionalProperties": false, "required": ["outcome","reason_codes","evaluated_at"],
+      "properties": {"outcome": {"enum": ["PROCEED","BLOCK","HOLD_FOR_REVIEW","ERROR"]}, "reason_codes": {"$ref": "#/$defs/strs"},
+                     "evaluated_at": {"$ref": "#/$defs/ts"}}},
+    "issued_at": {"$ref": "#/$defs/ts"},
+    "signing": {"type": "object", "additionalProperties": false, "required": ["algorithm","key_id","signature","canonicalization_id"],
+      "properties": {"algorithm": {"const": "Ed25519"}, "key_id": {"type": "string"}, "signature": {"type": "string"},
+                     "canonicalization_id": {"const": "ctal-cjson-1"}}}
+  }
+}

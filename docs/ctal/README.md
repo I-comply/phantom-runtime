@@ -1,0 +1,38 @@
+# CTAL: Continuous Trust and Assurance Ledger (P0)
+
+Implementation of directive CH-CTAL-001 in `ctal/`. Status vocabulary: PROVEN, FAILED, BLOCKED, UNTESTED, SPECIFIED.
+
+**Critical finding:** the production **AQPD** and **CLES** implementations are **not in this repository** (searched this repo, the last 50 commits of the branch, and `I-comply/agent-trust-layer`; other org repos were not searched). CTAL therefore defines the AQPD and CLES **contracts** (`ctal/aqpd.py`, `ctal/cles.py`), and ships clearly-labelled **reference** adapters so the workflow runs end to end. Live integration with the real AQPD/CLES is **BLOCKED**; see "Unblock" below.
+
+| Doc | Content |
+|---|---|
+| [repository-inventory.md](repository-inventory.md) | What was found, baseline results |
+| [evidence-matrix.md](evidence-matrix.md) | Requirement → file → test → status |
+| [risk-register.md](risk-register.md) | Risks and mitigations |
+| [architecture-and-threat-model.md](architecture-and-threat-model.md) | Data flow, trust model, what a privileged operator can still do |
+| [operations.md](operations.md) | Setup, config, key rotation, backup/restore, rollback, incident response |
+| [pilot-runbook.md](pilot-runbook.md) | Workflow, metric definitions, buyer-validation checklist |
+| [implementation-log.md](implementation-log.md) | Commands, outputs, decisions, limitations |
+
+## Quick start (local demonstration, development keys)
+
+```bash
+pip install -r ctal/requirements.txt
+python3 -m unittest discover -s ctal/tests -t .      # 65 tests
+python3 -m ctal demo                                  # gate -> ledger -> signed export -> offline verify -> tamper check
+```
+
+Run the service: `CTAL_ENV=development CTAL_DB=ctal.db python3 -m ctal serve --port 8080`, then `python3 -m ctal create-api-key <tenant> <gate|auditor|admin> <label>`.
+
+Offline verification (no database, no private keys, separate process, imports nothing from `ctal`):
+
+```bash
+python3 -m ctal export-pubkey                         # prints: <export_key_id> <base64url public key>; pin out-of-band
+python3 ctal/verifier/ctal_verify.py export.zip --pin-export-key-id ID --pin-export-public-key PUB
+```
+
+## Unblock live AQPD / CLES integration
+1. Provide the repository (or package) that contains AQPD and CLES.
+2. AQPD: implement `ctal.aqpd.AqpdEngine.assess(content, media_type, policy) -> AqpdResult` (statuses `ACCEPT|WARN|QUARANTINE|REJECT|REVIEW|UNKNOWN|ERROR`) as a thin adapter; pass it to `Gate(...)`.
+3. CLES: implement `verify(token, tenant_id, product_id) -> ClesResult` and a `RevocationSource`; map the real token format/issuer keys into `TrustStore` entries with purpose `entitlement`. If CLES uses HMAC or another algorithm, add it as an explicit, config-fixed algorithm; do not accept an algorithm from the token.
+4. Re-run `ctal/tests` plus adapter-specific suites; update the evidence matrix.
