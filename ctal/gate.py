@@ -50,7 +50,7 @@ def source_release_digest() -> str:
     for d, dirs, files in os.walk(root):
         dirs[:] = sorted(x for x in dirs if x not in ("__pycache__", "tests"))
         for f in sorted(files):
-            if f.endswith((".py", ".sql", ".json")):
+            if f.endswith((".py", ".sql", ".json", ".js", ".mjs")):
                 p = os.path.join(d, f)
                 parts.append(os.path.relpath(p, root).replace(os.sep, "/") + ":" + sha256_hex(_rb(p)))
     return sha256_hex("\n".join(parts).encode())

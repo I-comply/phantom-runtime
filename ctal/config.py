@@ -6,6 +6,7 @@ CTAL_ENVELOPE_KEY     PEM path for the envelope signing key   (0600, outside the
 CTAL_EXPORT_KEY       PEM path for the export signing key
 CTAL_ISSUER_TRUST     JSON trust file with CLES issuer public keys (purpose "entitlement")
 CTAL_REVOKED_LICENSES JSON file: ["license-id", ...]
+CTAL_ENGINE           reference (default) | js  (see _js_engines for the js settings)
 In production, keys whose id starts with "dev-" are refused and missing key files are an error.
 In development, missing key files are generated with ids "dev-..." and a loud log line.
 """
@@ -51,5 +52,35 @@ def build_from_env(environ=os.environ) -> Tuple[Gate, Signer, TrustStore]:
     public.add(TrustedKey(xs.key_id, xs.public_raw(), "export"))
     issuer_trust = TrustStore.load(environ["CTAL_ISSUER_TRUST"]) if environ.get("CTAL_ISSUER_TRUST") else TrustStore()
     revoked = json.load(open(environ["CTAL_REVOKED_LICENSES"])) if environ.get("CTAL_REVOKED_LICENSES") else []
-    gate = Gate(store, ReferenceAqpdEngine(), ClesVerifier(issuer_trust, StaticRevocationList(revoked)), es, public)
+    if environ.get("CTAL_ENGINE", "reference") == "js":
+        aqpd, cles = _js_engines(environ)
+    else:
+        aqpd, cles = ReferenceAqpdEngine(), ClesVerifier(issuer_trust, StaticRevocationList(revoked))
+    gate = Gate(store, aqpd, cles, es, public)
     return gate, xs, public
+
+
+def _js_engines(environ):
+    """CTAL_ENGINE=js: AQPD.js/CLES.js via the Node bridge. All names below are required; values are never logged.
+    CTAL_AQPD_KEY_ID, CTAL_AQPD_PRIVATE_KEY (PEM path, 0600), CTAL_AQPD_PUBLIC_KEY (PEM path),
+    CTAL_CLES_ISSUER, CTAL_CLES_KEYS (JSON {"keys":[{"key_id","pem","status"}]}), CTAL_CLES_DEPLOYMENT,
+    CTAL_CLES_FEATURE, CTAL_REVOKED_LICENSES (JSON list, re-read on every check), CTAL_NODE (optional)."""
+    from .adapters.node_bridge import JsAqpdEngine, JsClesVerifier, NodeBridge
+    bridge = NodeBridge()
+    if not bridge.available():
+        raise RuntimeError("CTAL_ENGINE=js but node is not available")
+    with open(environ["CTAL_AQPD_PUBLIC_KEY"], encoding="utf-8") as f:
+        apub = f.read()
+    with open(environ["CTAL_CLES_KEYS"], encoding="utf-8") as f:
+        keys = {k["key_id"]: {"pem": k["pem"], "status": k.get("status", "active")} for k in json.load(f)["keys"]}
+    rev_path = environ.get("CTAL_REVOKED_LICENSES")
+
+    def revoked():
+        if not rev_path:
+            return []
+        with open(rev_path, encoding="utf-8") as fh:
+            return json.load(fh)
+    aqpd = JsAqpdEngine(bridge, environ["CTAL_AQPD_KEY_ID"], environ["CTAL_AQPD_PRIVATE_KEY"], apub)
+    cles = JsClesVerifier(bridge, environ["CTAL_CLES_ISSUER"], keys, environ["CTAL_CLES_DEPLOYMENT"],
+                          environ["CTAL_CLES_FEATURE"], revoked)
+    return aqpd, cles

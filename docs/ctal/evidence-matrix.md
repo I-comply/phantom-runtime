@@ -1,16 +1,16 @@
 # Evidence matrix
 
-"Tests passed" = run in this environment (Python 3.13.16): `python3 -W error::ResourceWarning -m unittest discover -s ctal/tests -t .` → **65 tests, OK**; also OK on Python 3.12 (64 run + 1 skipped because `jsonschema` not installed in that interpreter). Python 3.9/3.11: UNTESTED (3.9 absent; 3.11's system `cryptography` package is broken, environmental). Syntax-only parse for 3.9 passed.
+"Tests passed" = run in this environment (Python 3.13.16): `python3 -W error::ResourceWarning -m unittest discover -s ctal/tests -t .` → **79 tests, OK** (13 of them exercise the supplied AQPD.js/CLES.js through a Node bridge; Node v22.22.0); also OK on Python 3.12 (64 run + 1 skipped because `jsonschema` not installed in that interpreter). Python 3.9/3.11: UNTESTED (3.9 absent; 3.11's system `cryptography` package is broken, environmental). Syntax-only parse for 3.9 passed.
 
-Scope caveat: AT-01..06 are proven against the **reference** AQPD/CLES written in this change, not the real systems (which are not in the repository).
+Scope caveat: AT-01..06 are proven twice: against the **reference** engines written in this change (`test_aqpd.py`, `test_cles.py`) and against the **supplied AQPD.js/CLES.js** (`test_js_adapters.py`). The JS runs use a *reconstructed* `crypto.js` (original missing), so compatibility with previously issued signatures is UNVERIFIED; that the JS files are the production versions is unverified. See js-integration.md for 8 findings (e.g. CLES.verify skips omitted scope checks; maxActivations unenforced).
 
 | Req | Implementation (new code) | Tests | Status |
 |---|---|---|---|
-| AQPD contract, statuses, reason codes, bounded resources | `ctal/aqpd.py`, `ctal/gate.py` (timeout/exception/invalid-result → `ERROR`) | `test_aqpd.py`, `test_gate.py` | PROVEN (contract + reference engine). Real AQPD: **BLOCKED** |
+| AQPD contract, statuses, reason codes, bounded resources | `ctal/aqpd.py`, `ctal/gate.py` (timeout/exception/invalid-result → `ERROR`) | `test_aqpd.py`, `test_gate.py` | PROVEN (contract + reference engine). Supplied AQPD.js: PROVEN via bridge (rules fixed; accuracy UNTESTED) |
 | AT-01 benign | reference engine | `test_aqpd.test_at01_benign` | PROVEN (reference) |
 | AT-02 adversarial | pattern rules; no accuracy claim | `test_at02_adversarial_and_warn` | PROVEN (reference); detection accuracy UNTESTED/no claim |
 | AT-03 malformed/oversized/nested/duplicate/timeout | `canon.parse_strict`, size caps, gate timeout | `test_at03_bounds_and_malformed`, `test_canon`, `test_gate.test_aqpd_timeout_is_typed_error` | PROVEN. Caveat: a timed-out Python thread cannot be killed (see risk R-06) |
-| CLES contract (signature, tenant/product, window, expiry, revocation, key id/rotation) | `ctal/cles.py`, `ctal/keys.py` | `test_cles.py` | PROVEN (reference). Real CLES: **BLOCKED** |
+| CLES contract (signature, tenant/product, window, expiry, revocation, key id/rotation) | `ctal/cles.py`, `ctal/keys.py` | `test_cles.py` | PROVEN (reference). Supplied CLES.js: PROVEN via bridge |
 | AT-04 valid entitlement | | `test_at04_valid` | PROVEN (reference) |
 | AT-05 tamper / unknown key / wrong-purpose key / token-chosen algorithm | | `test_at05_*`, `test_algorithm_chosen_by_token_is_rejected`, `test_wrong_purpose_key_cannot_authorize` | PROVEN |
 | AT-06 expired, not-yet-valid, revoked, wrong tenant/product, malformed, invalid sig | | `test_at06_lifecycle_negatives`, `test_reason_codes_for_scope`, `test_revoked_issuer_key_and_rotation` | PROVEN. Revocation source is a static list; live feed **BLOCKED** (no service) |

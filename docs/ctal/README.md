@@ -2,7 +2,7 @@
 
 Implementation of directive CH-CTAL-001 in `ctal/`. Status vocabulary: PROVEN, FAILED, BLOCKED, UNTESTED, SPECIFIED.
 
-**Critical finding:** the production **AQPD** and **CLES** implementations are **not in this repository** (searched this repo, the last 50 commits of the branch, and `I-comply/agent-trust-layer`; other org repos were not searched). CTAL therefore defines the AQPD and CLES **contracts** (`ctal/aqpd.py`, `ctal/cles.py`), and ships clearly-labelled **reference** adapters so the workflow runs end to end. Live integration with the real AQPD/CLES is **BLOCKED**; see "Unblock" below.
+**AQPD / CLES:** neither was in this repository (searched this repo, the last 50 commits, and `I-comply/agent-trust-layer`). CTAL defines the contracts (`ctal/aqpd.py`, `ctal/cles.py`) and ships labelled *reference* engines. The user later supplied `AQPD.js` and `CLES.js`; they are integrated through a Node bridge ([js-integration.md](js-integration.md), `CTAL_ENGINE=js`). Their dependency `crypto.js` was missing, so a reconstruction is used and compatibility with already-issued licenses is **UNVERIFIED**; provenance as "the production code" is unverified.
 
 | Doc | Content |
 |---|---|
@@ -12,13 +12,14 @@ Implementation of directive CH-CTAL-001 in `ctal/`. Status vocabulary: PROVEN, F
 | [architecture-and-threat-model.md](architecture-and-threat-model.md) | Data flow, trust model, what a privileged operator can still do |
 | [operations.md](operations.md) | Setup, config, key rotation, backup/restore, rollback, incident response |
 | [pilot-runbook.md](pilot-runbook.md) | Workflow, metric definitions, buyer-validation checklist |
+| [js-integration.md](js-integration.md) | Supplied AQPD.js/CLES.js: mapping, findings, gaps |
 | [implementation-log.md](implementation-log.md) | Commands, outputs, decisions, limitations |
 
 ## Quick start (local demonstration, development keys)
 
 ```bash
 pip install -r ctal/requirements.txt
-python3 -m unittest discover -s ctal/tests -t .      # 65 tests
+python3 -m unittest discover -s ctal/tests -t .      # 79 tests
 python3 -m ctal demo                                  # gate -> ledger -> signed export -> offline verify -> tamper check
 ```
 
@@ -31,7 +32,8 @@ python3 -m ctal export-pubkey                         # prints: <export_key_id> 
 python3 ctal/verifier/ctal_verify.py export.zip --pin-export-key-id ID --pin-export-public-key PUB
 ```
 
-## Unblock live AQPD / CLES integration
+## Remaining AQPD / CLES unblock steps (original `crypto.js`; see js-integration.md)
+Historic generic steps, still valid for any other engine:
 1. Provide the repository (or package) that contains AQPD and CLES.
 2. AQPD: implement `ctal.aqpd.AqpdEngine.assess(content, media_type, policy) -> AqpdResult` (statuses `ACCEPT|WARN|QUARANTINE|REJECT|REVIEW|UNKNOWN|ERROR`) as a thin adapter; pass it to `Gate(...)`.
 3. CLES: implement `verify(token, tenant_id, product_id) -> ClesResult` and a `RevocationSource`; map the real token format/issuer keys into `TrustStore` entries with purpose `entitlement`. If CLES uses HMAC or another algorithm, add it as an explicit, config-fixed algorithm; do not accept an algorithm from the token.

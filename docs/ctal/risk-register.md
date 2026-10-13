@@ -2,7 +2,8 @@
 
 | ID | Risk | Likelihood / Impact | Mitigation in place | Residual / action |
 |---|---|---|---|---|
-| R-01 | Real AQPD/CLES absent from repository; reference adapters mistaken for production | High / High | Labelled REFERENCE in code and docs; contract tests reusable | Obtain the real code; build adapters; re-run suites. Open |
+| R-01 | Reference engines mistaken for production; supplied JS engines depend on a reconstructed `crypto.js` | High / High | Reference code labelled; JS files kept byte-identical; reconstruction flagged in file header and docs | Obtain original `crypto.js` and issued-license fixtures; confirm provenance. Open |
+| R-12 | CLES.js gaps: fail-open scope args (mitigated), maxActivations unenforced, in-memory revocations | Med / Med | Bridge enforces required scope; revocation list per call | Activation tracking and revocation feed not built. Open |
 | R-02 | Signing key compromise (envelope or export) | Med / High | Keys outside repo, 0600 PEM, prod refuses `dev-*`; rotation + revocation + ledger events; revoked key invalidates old envelopes (strict) | No KMS/HSM yet (BLOCKED). Compromise of export key lets an attacker forge a whole export; mitigate by pinning key out-of-band and rotating |
 | R-03 | Privileged DB admin rewrites history incl. hashes | Low–Med / High | Triggers (naive edits), hash chain, signed checkpoint in each export | Proven undetectable by chain alone (test). Customers must retain earlier exports/checkpoints; consider external anchoring only if a buyer requires it |
 | R-04 | Tenant isolation bug | Low / Critical | Tenant derived from API key; every SQL has `tenant_id=?`; negative tests across API/store/export | SQLite has no RLS; one DB file for all tenants. For stronger isolation use per-tenant DBs or PostgreSQL RLS (UNTESTED) |
