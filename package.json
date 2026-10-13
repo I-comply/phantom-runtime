@@ -1,0 +1,20 @@
+{
+  "name": "phantom-runtime-asset-extractor",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "extract": "tsx lib/extractor/cli.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "prisma": "^6.19.3",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
