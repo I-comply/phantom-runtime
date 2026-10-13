@@ -20,15 +20,24 @@ export function validateSelector(selector: string): void {
   $(selector); // throws on invalid syntax
 }
 
+const segment = (t: string) => t.split(/(?<=[.;:!?])\s+/).filter(Boolean);
+
+export function diffSegments(oldText: string, newText: string) {
+  const o = new Set(segment(oldText));
+  const n = new Set(segment(newText));
+  return { added: [...n].filter((s) => !o.has(s)), removed: [...o].filter((s) => !n.has(s)) };
+}
+
 export function summarizeDiff(oldText: string | null, newText: string): string {
   if (oldText == null) return `Baseline captured. Length: ${newText.length} chars.`;
-  const seg = (t: string) => t.split(/(?<=[.;:!?])\s+/).filter(Boolean);
-  const o = new Set(seg(oldText));
-  const n = new Set(seg(newText));
-  const added = [...n].filter((s) => !o.has(s));
-  const removed = [...o].filter((s) => !n.has(s));
+  const { added, removed } = diffSegments(oldText, newText);
   const sample = added.slice(0, 3).map((s) => (s.length > 200 ? `${s.slice(0, 197)}...` : s));
   let out = `Ordinance content updated: ${added.length} segment(s) added, ${removed.length} removed. Length ${oldText.length} -> ${newText.length} chars.`;
   if (sample.length) out += ` Added: ${sample.map((s) => `"${s}"`).join(' | ')}`;
   return out;
+}
+
+export function isDue(site: { lastChecked: Date | null; intervalMinutes: number }, now = new Date()): boolean {
+  if (!site.lastChecked) return true;
+  return now.getTime() - site.lastChecked.getTime() >= site.intervalMinutes * 60_000 - 60_000;
 }

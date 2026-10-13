@@ -36,7 +36,7 @@ export default async function DashboardPage() {
                 <div>
                   <h3 style={{ margin: 0 }}>{s.name}</h3>
                   <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#2563eb', wordBreak: 'break-all' }}>{s.url}</a>
-                  <p style={{ margin: 0, fontSize: 12, color: '#6b7280', fontFamily: 'monospace' }}>Selector: {s.selector}</p>
+                  <p style={{ margin: 0, fontSize: 12, color: '#6b7280', fontFamily: 'monospace' }}>Selector: {s.selector} · every {s.intervalMinutes}m · <a href={`/dashboard/sites/${s.id}`}>History</a></p>
                 </div>
                 <div style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
                   <div style={{ fontWeight: 600, color: color(s.status) }}>{s.status}</div>

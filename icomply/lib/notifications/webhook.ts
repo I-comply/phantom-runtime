@@ -3,10 +3,11 @@ import crypto from 'crypto';
 import { assertPublicUrl, safeLookup } from '../security/ssrf';
 
 export interface WebhookPayload {
-  changeLogId: string;
+  event: 'change' | 'site_error';
+  changeLogId: string | null;
   siteName: string;
   siteUrl: string;
-  newHash: string;
+  newHash: string | null;
   diffSummary: string;
   detectedAt: string;
 }

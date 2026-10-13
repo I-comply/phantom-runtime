@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import { encryptSecret } from '@/lib/security/crypto';
 import { assertPublicUrl } from '@/lib/security/ssrf';
 import { btn, card, field } from '@/lib/ui';
 
@@ -14,7 +15,7 @@ async function addEndpoint(formData: FormData) {
   try {
     if (secret.length < 16) throw new Error('Secret must be at least 16 characters');
     const u = (await assertPublicUrl(url)).toString();
-    await prisma.webhookEndpoint.upsert({ where: { url: u }, update: { secret, active: true }, create: { url: u, secret } });
+    await prisma.webhookEndpoint.upsert({ where: { url: u }, update: { secret: encryptSecret(secret), active: true }, create: { url: u, secret: encryptSecret(secret) } });
   } catch (e: any) {
     error = e.message;
   }
@@ -38,7 +39,7 @@ export default async function WebhooksPage({ searchParams }: { searchParams: { e
       <a href="/dashboard">&larr; Dashboard</a>
       <h1>Webhook Endpoints</h1>
       <p style={{ fontSize: 13, color: '#6b7280' }}>
-        Deliveries are signed: <code>X-iComply-Signature = sha256=HMAC(secret, timestamp + "." + body)</code>, with <code>X-iComply-Timestamp</code>.
+        Events: <code>change</code>, <code>site_error</code>. Deliveries are signed: <code>X-iComply-Signature = sha256=HMAC(secret, timestamp + "." + body)</code>, with <code>X-iComply-Timestamp</code>.
       </p>
       {searchParams.error && <p style={{ color: '#b91c1c' }}>{searchParams.error}</p>}
       <form action={addEndpoint}>
@@ -53,7 +54,7 @@ export default async function WebhooksPage({ searchParams }: { searchParams: { e
             <div style={{ wordBreak: 'break-all' }}>{e.url}</div>
             <ul style={{ fontSize: 12, color: '#374151' }}>
               {e.deliveries.map((d) => (
-                <li key={d.id}>{d.createdAt.toISOString()} {d.success ? 'OK' : `FAILED (${d.error})`} after {d.attempts} attempt(s)</li>
+                <li key={d.id}>{d.createdAt.toISOString()} [{d.event}] {d.success ? 'OK' : `FAILED (${d.error})`} after {d.attempts} attempt(s)</li>
               ))}
             </ul>
             <form action={removeEndpoint}><input type="hidden" name="id" value={e.id} /><button style={btn('#b91c1c')}>Remove</button></form>

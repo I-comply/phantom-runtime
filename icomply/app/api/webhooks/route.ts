@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
-  if (!body.siteName || !body.newHash) {
+  if (!body.siteName || !['change', 'site_error'].includes(body.event)) {
     return NextResponse.json({ error: 'Invalid payload structure' }, { status: 400 });
   }
   console.log(`[Webhook Received] target: ${body.siteName}`);

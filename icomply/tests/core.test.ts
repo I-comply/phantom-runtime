@@ -47,7 +47,7 @@ describe('webhook signing', () => {
   it('backs off exponentially', () => expect([1, 2, 3].map((a) => backoffMs(a))).toEqual([500, 1000, 2000]));
   it('does not retry non-retryable URL failure beyond attempts', async () => {
     const sleeps: number[] = [];
-    const r = await dispatchWithRetry('http://localhost/x', { changeLogId: '1', siteName: 'a', siteUrl: 'b', newHash: 'c', diffSummary: '', detectedAt: '' }, 's', 3, async (ms) => { sleeps.push(ms); });
+    const r = await dispatchWithRetry('http://localhost/x', { event: 'change', changeLogId: '1', siteName: 'a', siteUrl: 'b', newHash: 'c', diffSummary: '', detectedAt: '' }, 's', 3, async (ms) => { sleeps.push(ms); });
     expect(r.success).toBe(false);
     expect(r.attempts).toBe(3);
     expect(sleeps).toEqual([500, 1000]);
