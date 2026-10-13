@@ -1,0 +1,7 @@
+{
+  "framework": null,
+  "installCommand": "cd phantom-runtime-main/frontend && yarn install",
+  "buildCommand": "cd phantom-runtime-main/frontend && yarn build",
+  "outputDirectory": "phantom-runtime-main/frontend/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
