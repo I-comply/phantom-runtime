@@ -1,0 +1,21 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AssetRegistry {
+  id            String   @id @default(uuid())
+  assetName     String   @unique
+  domain        String
+  keywords      String[]
+  status        String   @default("UNVERIFIED")
+  filePath      String?
+  extractedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([domain])
+}
