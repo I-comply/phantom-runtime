@@ -31,6 +31,8 @@ services:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-phantom_secure_pass}@postgres:5432/phantomos
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       PHANTOM_BOOTSTRAP_ADMIN_KEY: ${PHANTOM_BOOTSTRAP_ADMIN_KEY:?set PHANTOM_BOOTSTRAP_ADMIN_KEY to mint the first admin API key, then unset it}
+      # Optional: workspace id whose `admin` keys are platform admins (cross-tenant). Unset = none.
+      PHANTOM_PLATFORM_TENANT_ID: ${PHANTOM_PLATFORM_TENANT_ID:-}
       # Plugin/strategy code runs via app/core/sandbox.py, not in-process exec(). The
       # default "subprocess" driver (isolated process, unprivileged uid, rlimits — no
       # Docker socket needed) is what this container runs; it blocks fork/exec and

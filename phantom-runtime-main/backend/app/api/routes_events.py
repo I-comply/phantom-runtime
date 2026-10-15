@@ -4,8 +4,10 @@ from pydantic import BaseModel
 from typing import Dict, Any
 from app.core.database import get_db
 from app.core.event_store import EventStore
-from app.core.deps import require_permission, is_admin
+from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v3 import APIKey
+from app.core import money
+from app.api.websocket import publish_event
 from datetime import datetime
 
 router = APIRouter(prefix="/api/events", tags=["events"])
@@ -38,14 +40,26 @@ def create_event(
     api_key_obj: APIKey = Depends(require_permission("events", "write")),
 ):
     """Append a new event to the store. Links entity_id to the caller's own
-    workspace (first writer wins — see EventStore.append_event)."""
-    stored_event = EventStore.append_event(
-        db=db,
-        entity_id=event.entity_id,
-        event_type=event.event_type,
-        payload=event.payload,
-        workspace_id=str(api_key_obj.tenant_id),
-    )
+    workspace (first writer wins — see EventStore.append_event). Money events (deposit, withdraw,
+    trade, ...) must carry amounts as decimal strings or integers: floats are rejected (422)."""
+    try:
+        money.validate_money_payload(event.event_type, event.payload)
+    except money.AmountError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    try:
+        stored_event = EventStore.append_event(
+            db=db,
+            entity_id=event.entity_id,
+            event_type=event.event_type,
+            payload=event.payload,
+            workspace_id=str(api_key_obj.tenant_id),
+            validate_against_state=True,
+        )
+    except money.AmountError as e:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(e))
+    publish_event({"id": stored_event.id, "entity_id": stored_event.entity_id,
+                   "event_type": stored_event.event_type, "version": "v1"}, api_key_obj.tenant_id)
     return stored_event
 
 @router.get("/entity/{entity_id}", response_model=list[EventResponse])
@@ -57,7 +71,7 @@ def get_entity_events(
     """Get all events for a specific entity. 404s (not an empty list) if the
     caller's workspace has no link to this entity, so "no access" is never
     indistinguishable from "entity exists but has no events"."""
-    if not is_admin(api_key_obj, db) and not EventStore.entity_in_workspace(
+    if not is_platform_admin(api_key_obj, db) and not EventStore.entity_in_workspace(
         db, entity_id, str(api_key_obj.tenant_id)
     ):
         raise HTTPException(status_code=404, detail="entity not found")
@@ -72,6 +86,6 @@ def get_all_events(
 ):
     """Get recent events across all entities in the caller's workspace
     (unscoped — all workspaces — for admin keys)."""
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     events = EventStore.get_all_events(db=db, limit=limit, workspace_id=workspace_id)
     return events

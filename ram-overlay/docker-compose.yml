@@ -1,0 +1,15 @@
+services:
+  ram-overlay:
+    build:
+      context: .
+      dockerfile: Dockerfile.ram
+    cap_drop: [ALL]
+    cap_add: [SYS_ADMIN]
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined # docker-default AppArmor profile denies mount(2); remove if host has no AppArmor
+    read_only: true
+    environment:
+      SIZE_MB: "256"
+    stop_grace_period: 15s
+    restart: unless-stopped
