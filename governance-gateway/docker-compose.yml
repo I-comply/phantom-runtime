@@ -1,0 +1,12 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    ports: ["8000:8000"]
+    environment:
+      GATEWAY_KEYS: ${GATEWAY_KEYS:?set GATEWAY_KEYS as JSON {"client_id":"secret"}}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
