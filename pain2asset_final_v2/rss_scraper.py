@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import re
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405
+from defusedxml.ElementTree import fromstring as safe_fromstring
 import httpx
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -25,7 +26,7 @@ def _first(item: ET.Element, *paths: str):
 
 class FullyHardenedScraper:
     FEEDS = {
-        "GitHub Issues": "https://github.com/trending/developers?format=atom",
+        "StackOverflow DevOps": "https://stackoverflow.com/feeds/tag/docker",
         "StackOverflow": "https://stackoverflow.com/feeds/tag?tagnames=python&sort=newest",
         "HackerNews": "https://hnrss.org/newest?points=50",
         "Reddit Programming": "https://www.reddit.com/r/programming/new/.rss",
@@ -101,7 +102,7 @@ class FullyHardenedScraper:
         # ET.fromstring rejects str input carrying an encoding declaration
         clean_xml = re.sub(r'^\s*<\?xml[^>]*\?>', '', clean_xml)
         try:
-            root = ET.fromstring(clean_xml)
+            root = safe_fromstring(clean_xml)
             items = root.findall(".//item") or root.findall(f".//{ATOM}entry")
             for item in items[:5]:
                 title_elem = _first(item, "title", f"{ATOM}title")
