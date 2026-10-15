@@ -1,0 +1,30 @@
+{
+  "slug": "phantomos-reconstitution-runtime",
+  "asset_id": "PWX-ASSET-000007",
+  "demo_type": "RECORDED_RUN",
+  "title": "Rebuild state from a synthetic event log, then audit determinism",
+  "recorded_on": "2026-10-15",
+  "environment": {
+    "node": "v22.22.0",
+    "python": "Python 3.13.16"
+  },
+  "disclosure": "Recorded output of the real code run on synthetic data. Not a hosted service; not production behavior.",
+  "steps": [
+    "Five synthetic events (init, deposits, a withdrawal, an update) are applied by the production reconstructor.",
+    "Each line shows the state after the event, so the replay is visible step by step.",
+    "A follow-up replaycheck run over the same events reports PASS."
+  ],
+  "limitations": "Reconstructor only, with synthetic data; the full HTTP service was not started for this demo.",
+  "runs": [
+    {
+      "command": "python3 phantomos_replay.py events.jsonl",
+      "exit_code": 0,
+      "transcript": "event 1: init      -> state {\"account\": \"demo-acct\", \"currency\": \"USD\"}\nevent 2: deposit   -> state {\"account\": \"demo-acct\", \"balances\": {\"USDC\": \"100\"}, \"currency\": \"USD\", \"event_history\": [{\"amount\": \"100\", \"asset\": \"USDC\", \"type\": \"deposit\"}]}\nevent 3: deposit   -> state {\"account\": \"demo-acct\", \"balances\": {\"USDC\": \"125.5\"}, \"currency\": \"USD\", \"event_history\": [{\"amount\": \"100\", \"asset\": \"USDC\", \"type\": \"deposit\"}, {\"amount\": \"25.5\", \"asset\": \"USDC\", \"type\": \"deposit\"}]}\nevent 4: withdraw  -> state {\"account\": \"demo-acct\", \"balances\": {\"USDC\": \"115.25\"}, \"currency\": \"USD\", \"event_history\": [{\"amount\": \"100\", \"asset\": \"USDC\", \"type\": \"deposit\"}, {\"amount\": \"25.5\", \"asset\": \"USDC\", \"type\": \"deposit\"}, {\"amount\": \"10.25\", \"asset\": \"USDC\", \"type\": \"withdraw\"}]}\nevent 5: update    -> state {\"account\": \"demo-acct\", \"balances\": {\"USDC\": \"115.25\"}, \"currency\": \"USD\", \"event_history\": [{\"amount\": \"100\", \"asset\": \"USDC\", \"type\": \"deposit\"}, {\"amount\": \"25.5\", \"asset\": \"USDC\", \"type\": \"deposit\"}, {\"amount\": \"10.25\", \"asset\": \"USDC\", \"type\": \"withdraw\"}], \"label\": \"synthetic demo data\"}"
+    },
+    {
+      "command": "python3 -m replaycheck run --store events.jsonl --reducer phantomos_adapter.py",
+      "exit_code": 0,
+      "transcript": "replaycheck: 5 events, checks: event-mutation, determinism\nPASS"
+    }
+  ]
+}

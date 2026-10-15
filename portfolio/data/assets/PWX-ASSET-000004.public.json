@@ -1,0 +1,199 @@
+{
+  "asset_id": "PWX-ASSET-000004",
+  "slug": "temporal-kernel-workflow-node",
+  "name": "Temporal Kernel — Hash-Chained Workflow Orchestration Node",
+  "brand": "PhantomworX + i-Comply",
+  "creator_attribution": "Daniel Ron Stevens",
+  "disposition": "PURSUE",
+  "asset_type": "library",
+  "category": "Workflow orchestration",
+  "one_line_value_proposition": "Deterministic state-machine workflows over an append-only, hash-chained SQLite event log with lease fencing and logical rollback.",
+  "buyer_problem": "Teams that need durable, auditable workflow execution often adopt heavy infrastructure for what is a small state-machine problem.",
+  "solution_summary_public": "Machines are pure-data specs; each state owns a task; nodes claim tasks with a lease and monotonic fence; completions with stale fences are rejected; checkpoints record a state hash; rollback is logical and never rewrites history.",
+  "maturity": "TESTED_IMPLEMENTATION",
+  "deployment_status": "DEPLOYABLE_UNVERIFIED",
+  "test_status": "TESTS_PASSING_LOCAL",
+  "revenue_status": "NONE_VERIFIED",
+  "traction_status": "NONE_VERIFIED",
+  "contact_cta": "Request acquisition details",
+  "last_reviewed": "2026-10-15",
+  "differentiators_public": [
+    "Failover safety via monotonic fence tokens — a stale node cannot corrupt state.",
+    "State is derived only from the log, so every node derives identical state; replay raises on divergence.",
+    "Standard-library Python; one SQLite file."
+  ],
+  "verified_capabilities": [
+    "19 tests pass locally (unittest, 2026-10-15) via verify.sh.",
+    "Runnable demo shows lease, node death, recovery and fence increment (`python3 -m tkernel demo`).",
+    "Optional per-event HMAC; `verify` command exits 1 on corruption."
+  ],
+  "unverified_claims": [
+    "Multi-node behavior on a shared network volume; CI status was not inspected in this review."
+  ],
+  "target_buyer": {
+    "segments": [
+      "Teams embedding workflow execution in a product",
+      "Embedded and edge deployments",
+      "Audit-sensitive back-office automation"
+    ],
+    "buyer_roles": [
+      "Staff engineer",
+      "Platform architect"
+    ]
+  },
+  "acquisition_packages": [
+    {
+      "package_name": "Non-exclusive source license",
+      "package_type": "LICENSE_NON_EXCLUSIVE",
+      "price_range": [
+        500,
+        2500
+      ],
+      "rights_granted": "Defined internal-use rights to the listed source and documentation; no ownership transfer; seller keeps the right to license others.",
+      "exclusions": [
+        "Ownership",
+        "Exclusivity",
+        "Shared components not listed in the agreement",
+        "Trademarks and brand names"
+      ],
+      "support_period": "30 days of clarification support after delivery",
+      "transfer_deliverables": [
+        "Source snapshot at a named commit",
+        "Build/run/test instructions",
+        "Dependency and license inventory"
+      ],
+      "availability": "Available after NDA and rights review."
+    },
+    {
+      "package_name": "Asset-only source-code transfer",
+      "package_type": "SOURCE_TRANSFER",
+      "price_range": [
+        3500,
+        8000
+      ],
+      "rights_granted": "Assignment of the seller's rights in the enumerated source files, subject to third-party licenses and counsel-reviewed terms.",
+      "exclusions": [
+        "Unrelated shared components",
+        "Third-party code and its licenses",
+        "Customer data (none exists)",
+        "Any operating business"
+      ],
+      "support_period": "60 days of handover support after delivery",
+      "transfer_deliverables": [
+        "Source snapshot and tagged commit",
+        "Documentation and test evidence",
+        "Checksums manifest",
+        "Handover session"
+      ],
+      "availability": "Available after NDA, diligence and rights review."
+    },
+    {
+      "package_name": "Exclusive rights",
+      "package_type": "EXCLUSIVE_RIGHTS",
+      "rights_granted": "Exclusive rights, only if the rights review confirms exclusivity is supportable.",
+      "exclusions": [
+        "Anything the rights review cannot confirm"
+      ],
+      "support_period": "To be agreed",
+      "transfer_deliverables": [
+        "As for source-code transfer"
+      ],
+      "availability": "Priced on request; not offered until ownership and third-party license review is complete."
+    }
+  ],
+  "valuation_public": {
+    "pricing_basis": "PROVISIONAL_ESTIMATE",
+    "confidence": "LOW",
+    "range": [
+      3500,
+      8000
+    ],
+    "license_range": [
+      500,
+      2500
+    ],
+    "statement": "Provisional estimate, confidence LOW. No verified realized-sale comparable exists for a pre-revenue, zero-traction source-code asset of this kind in the evidence reviewed (realized-comparable sample size: 0). The range is derived from a stated replacement-cost model and is not a realized-sale average. Negotiable."
+  },
+  "public": {
+    "headline": "Durable workflows where state is a pure fold of a tamper-evident log.",
+    "subheadline": "Temporal Kernel runs state-machine workflows whose entire state is replayed from an append-only, hash-chained log, with fence tokens that stop zombie nodes after failover.",
+    "cost_of_inaction": "Not applicable as a market claim; the value is a small, auditable orchestration core. No statistic is cited.",
+    "public_limitations": [
+      "SQLite single writer; no network replication or consensus.",
+      "Replay is full-history for a cold node; no snapshot fast-start.",
+      "Timers and signals are not implemented; rolled-back side effects are not undone."
+    ],
+    "architecture_public": [
+      "Machine spec → Node (claim / complete / fail / heartbeat) → EventLog (hash-chained, SQLite triggers reject UPDATE/DELETE) → pure replay → checkpoints."
+    ],
+    "risk_summary": "Single-writer SQLite; missing timers/signals; ownership and AI-authorship review pending; no revenue or customers.",
+    "valuation_public": {
+      "pricing_basis": "PROVISIONAL_ESTIMATE",
+      "confidence": "LOW",
+      "range": [
+        3500,
+        8000
+      ],
+      "license_range": [
+        500,
+        2500
+      ],
+      "statement": "Provisional estimate, confidence LOW. No verified realized-sale comparable exists for a pre-revenue, zero-traction source-code asset of this kind in the evidence reviewed (realized-comparable sample size: 0). The range is derived from a stated replacement-cost model and is not a realized-sale average. Negotiable."
+    },
+    "faq": [
+      {
+        "q": "What rights transfer?",
+        "a": "Only what a signed agreement lists. The offered packages are: non-exclusive source license; asset-only source-code transfer; exclusive rights (subject to rights review). No rights are implied beyond the written scope, and exclusivity is offered only after a rights review confirms it is supportable."
+      },
+      {
+        "q": "What is the implementation status?",
+        "a": "Tested implementation: 19 passing tests locally."
+      },
+      {
+        "q": "Does it have customers or revenue?",
+        "a": "No revenue, customers or usage metrics are claimed or verified. This is a technology asset, not an operating business."
+      },
+      {
+        "q": "What dependencies does it have?",
+        "a": "Python 3.9+ standard library only."
+      },
+      {
+        "q": "What is the handover and support?",
+        "a": "Source transfer with documentation, build/test instructions and a time-boxed knowledge-transfer session. Support terms are set per package and finalized in the agreement."
+      },
+      {
+        "q": "What are the known risks?",
+        "a": "Single-writer SQLite; missing timers/signals; ownership and AI-authorship review pending; no revenue or customers."
+      }
+    ],
+    "demo": {
+      "title": "Lease, crash, recover — watch the fence token advance",
+      "type": "RECORDED_RUN",
+      "command": "python3 -m tkernel demo",
+      "steps": [
+        "Node A leases a task with fence 2.",
+        "Node A dies; Node B recovers and leases with fence 3.",
+        "The workflow finishes with 11 recorded events."
+      ],
+      "limitations": "In-process simulation of node failure on one machine; recorded run of the real code.",
+      "expect": [
+        "B leased charge_card fence 3",
+        "final done events 11"
+      ]
+    },
+    "diligence_preview": [
+      "Tests: Tested implementation: 19 passing tests locally.",
+      "Dependencies: Python 3.9+ standard library only.",
+      "License: Proprietary — all rights reserved (LICENSE)",
+      "Security posture: automated secret and pattern scan only; no manual security review yet.",
+      "Known limitations: SQLite single writer; no network replication or consensus. Replay is full-history for a cold node; no snapshot fast-start. Timers and signals are not implemented; rolled-back side effects are not undone."
+    ],
+    "stats": {
+      "src_loc": 545,
+      "test_loc": 218
+    }
+  },
+  "publication": {
+    "approved": false
+  }
+}

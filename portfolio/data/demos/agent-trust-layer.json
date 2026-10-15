@@ -1,0 +1,24 @@
+{
+  "slug": "agent-trust-layer",
+  "asset_id": "PWX-ASSET-000005",
+  "demo_type": "RECORDED_RUN",
+  "title": "Run the ATL verification suite and demo",
+  "recorded_on": "2026-10-15",
+  "environment": {
+    "node": "v22.22.0",
+    "python": "Python 3.13.16"
+  },
+  "disclosure": "Recorded output of the real code run on synthetic data. Not a hosted service; not production behavior.",
+  "steps": [
+    "verify.sh runs the unit tests, then the end-to-end demo.",
+    "The recorded output shows which tests passed and which were skipped, and why."
+  ],
+  "limitations": "Subprocess executor only; Docker tests skipped. Recorded run of the real code.",
+  "runs": [
+    {
+      "command": "./verify.sh",
+      "exit_code": 0,
+      "transcript": "fs_write                     status=200 allow granted\nfs_delete (no approval)      status=403 needs_approval approval_required\nfs_delete (approved)         status=200 allow approved\nreplay                       status=401 unauthorized \nrevoked agent                status=401 unauthorized \nverify: {'ok': True, 'count': 15, 'head': '80e999cfd546db5212d5b878efcc02ce252245dc71e93240dbe8712a2080bf4c', 'error': None}\nafter tamper: {'ok': False, 'count': 2, 'error': 'content hash mismatch at seq 3'}\n\n.............................ssssssssss.........................................................................sssssss\n----------------------------------------------------------------------\nRan 119 tests in <t>s\n\nOK (skipped=17)\n.......ssssssssssssss\n----------------------------------------------------------------------\nRan 21 tests in <t>s\n\nOK (skipped=14)"
+    }
+  ]
+}

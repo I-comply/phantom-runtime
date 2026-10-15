@@ -1,0 +1,25 @@
+{
+  "slug": "phantomkit-supply-chain-gate",
+  "asset_id": "PWX-ASSET-000002",
+  "demo_type": "RECORDED_RUN",
+  "title": "Scan a deliberately vulnerable synthetic file",
+  "recorded_on": "2026-10-15",
+  "environment": {
+    "node": "v22.22.0",
+    "python": "Python 3.13.16"
+  },
+  "disclosure": "Recorded output of the real code run on synthetic data. Not a hosted service; not production behavior.",
+  "steps": [
+    "The sample is synthetic code with an injectable SQL string, shell=True and MD5.",
+    "`pk scan` reports 2 errors and 1 warning with rule IDs and source lines.",
+    "Exit code 1 is the CI-failing result."
+  ],
+  "limitations": "Single-file scan on synthetic code; not a benchmark against other scanners.",
+  "runs": [
+    {
+      "command": "pk scan vulnerable_sample.py",
+      "exit_code": 1,
+      "transcript": "../../phantom-runtime/portfolio/demo-fixtures/vulnerable_sample.py\n  ERROR    5:12  phantom.python.sql-string-building\n    SQL built with string concatenation/formatting is injectable. Use parameterized queries: cursor.execute(sql, params).\n       5 | return conn.execute(\"SELECT * FROM users WHERE name = '%s'\" % name).fetchall()\n  ERROR    8:12  phantom.python.subprocess-shell-true\n    subprocess call with shell=True and a non-literal command is vulnerable to shell injection. Pass an argument list and drop shell=True.\n       8 | return subprocess.run(cmd, shell=True)\n  WARNING  11:12  phantom.python.weak-hash\n    `hashlib.$F` is a broken hash for security purposes. Use SHA-256+ (or a password KDF such as scrypt/argon2 for passwords).\n      11 | return hashlib.md5(data).hexdigest()\n\n3 findings (2 error, 1 warning); 1 files, 113 rules, <t>s"
+    }
+  ]
+}

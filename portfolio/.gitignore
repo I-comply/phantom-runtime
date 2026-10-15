@@ -1,0 +1,11 @@
+# CONFIDENTIAL / NDA tier and restricted material: never commit (the repository is public)
+private/
+private-export/
+*.tar.gz
+# Build output and runtime state
+dist/
+data/inquiries/
+node_modules/
+.env
+.env.*
+!.env.example

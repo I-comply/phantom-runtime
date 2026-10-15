@@ -1,0 +1,26 @@
+{
+  "slug": "ctal-assurance-ledger",
+  "asset_id": "PWX-ASSET-000001",
+  "demo_type": "RECORDED_RUN",
+  "title": "Run the end-to-end CTAL demonstration",
+  "recorded_on": "2026-10-15",
+  "environment": {
+    "node": "v22.22.0",
+    "python": "Python 3.13.16"
+  },
+  "disclosure": "Recorded output of the real code run on synthetic data. Not a hosted service; not production behavior.",
+  "steps": [
+    "The demo creates a temporary ledger with development keys and synthetic content.",
+    "It gates content under four AQPD/CLES combinations.",
+    "It exports a signed evidence package and verifies it offline (exit 0).",
+    "It tampers with one envelope and shows the verifier fail (exit 1)."
+  ],
+  "limitations": "Development keys and synthetic data only. Recorded output of a real run; not a hosted service.",
+  "runs": [
+    {
+      "command": "python3 -m ctal demo",
+      "exit_code": 0,
+      "transcript": "publish policy: {\"policy_id\": \"content-quality\", \"version\": 1, \"digest\": \"77ef2dd49854ff6abe106ceaaadd8a93d11d46f12ece8b06ff073074159a42fa\"}\nbenign + valid license           -> HTTP 201  PROCEED          AQPD=ACCEPT  CLES=AUTHORIZED\nadversarial content              -> HTTP 201  BLOCK            AQPD=REJECT  CLES=AUTHORIZED\nbenign + revoked license         -> HTTP 201  BLOCK            AQPD=ACCEPT  CLES=REVOKED\nbenign + expired license         -> HTTP 201  BLOCK            AQPD=ACCEPT  CLES=EXPIRED\nbenign + no license              -> HTTP 201  BLOCK            AQPD=ACCEPT  CLES=DENIED\nwarn content + valid license     -> HTTP 201  HOLD_FOR_REVIEW  AQPD=WARN    CLES=AUTHORIZED\nretry of demo-0 -> HTTP 200 replayed=True; protected actions recorded: 1\noffline verifier exit code (untampered): 0\n{\n  \"verified\": true,\n  \"error\": null,\n  \"checked\": [\n    \"archive structure and path safety\",\n    \"manifest signature by pinned export key dev-export-1\",\n    \"sha256 + size of all 7 files match signed manifest\",\n    \"hash chain of 32 events (contiguous seq, prev_hash links, recomputed hashes, single tenant)\",\n    \"signed checkpoint matches chain head (seq 32)\",\n    \"1 policy versions: digests recomputed\",\n    \"6 envelopes: Ed25519 signatures, decision matrix consistency, ledger linkage, policy bundle digests\"\n  ],\n  \"not_established\": [\n    \"Truth, safety or legality of any assessed content (a signature proves integrity/attribution only).\",\n    \"Correctness or accuracy of the AQPD engine or CLES issuer decisions.\",\n    \"That no events were omitted before the checkpoint if the export signing key was compromised or the operator withheld events.\",\n    \"Events appended after the checkpoint was issued.\",\n    \"Accuracy of timestamps (they are asserted by the operator, not by a trusted time source).\",\n    \"That the software_release_digest corresponds to any particular audited build (source digest only; no build attestation checked).\",\n    \"Retention/deletion compliance, or regulatory compliance of any kind.\"\n  ]\n}\n\noffline verifier exit code (tampered envelope): 1  Fail: file digest mismatch: envelopes.jsonl\nartifacts in /tmp/<tmp>\n\n{\"ts\": <ts>, \"method\": \"POST\", \"path\": \"/v1/policies\", \"status\": 201, \"req\": \"d909782c4ba7\", \"trace\": null}\n{\"ts\": <ts>, \"method\": \"POST\", \"path\": \"/v1/gate\", \"status\": 201, \"req\": \"0758eb1593c8\", \"trace\": null}\n{\"ts\": <ts>, \"method\": \"POST\", \"path\": \"/v1/gate\", \"status\": 201, \"req\": \"43fa985b8e74\", \"trace\": null}\n{\"ts\": <ts>, \"method\": \"POST\", \"path\": \"/v1/gate\", \"status\": 201, \"req\": \"5cbcd033a1a6\", \"trace\": null}\n{\"ts\": <ts>, \"method\": \"POST\", \"path\": \"/v1/gate\", \"status\": 201, \"req\": \"6b2e62ec2660\", \"trace\": null}\n{\"ts\": <ts>, \"method\": \"POST\", \"path\": \"/v1/gate\", \"status\": 201, \"req\": \"ae63bac3f7f7\", \"trace\": null}\n{\"ts\": <ts>, \"method\": \"POST\", \"path\": \"/v1/gate\", \"status\": 201, \"req\": \"c64239749801\", \"trace\": null}\n{\"ts\": <ts>, \"method\": \"POST\", \"path\": \"/v1/gate\", \"status\": 200, \"req\": \"e6ae10c7c718\", \"trace\": null}\n{\"ts\": <ts>, \"method\": \"GET\", \"path\": \"/v1/export\", \"status\": 200, \"req\": \"95944b3fccf5\", \"trace\": null}"
+    }
+  ]
+}

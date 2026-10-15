@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://phantomworx.invalid/schemas/asset.schema.json",
+  "title": "PhantomworX + i-Comply asset record",
+  "version": "1.0.0",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "asset_id", "name", "brand", "creator_attribution", "disposition", "asset_type", "category",
+    "one_line_value_proposition", "maturity", "deployment_status", "test_status", "revenue_status",
+    "traction_status", "source_provenance", "ownership", "ip_classification", "security_review_status",
+    "valuation", "acquisition_packages", "buyer_assets", "contact_cta", "status", "publication"
+  ],
+  "properties": {
+    "asset_id": { "type": "string", "pattern": "^PWX-ASSET-[0-9]{6}$" },
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "brand": { "type": "string", "enum": ["PhantomworX + i-Comply"] },
+    "creator_attribution": { "type": "string", "enum": ["Daniel Ron Stevens"] },
+    "disposition": { "type": "string", "enum": ["PURSUE", "INTEGRATE", "ARCHIVE", "REFERENCE"] },
+    "disposition_rationale": { "type": "string" },
+    "asset_type": { "type": "string", "enum": ["SaaS", "developer_tool", "agent", "automation", "library", "protocol", "IP", "data", "other"] },
+    "category": { "type": "string", "minLength": 1 },
+    "one_line_value_proposition": { "type": "string", "minLength": 1 },
+    "buyer_problem": { "type": "string" },
+    "target_buyer": {
+      "type": "object",
+      "properties": {
+        "segments": { "type": "array", "items": { "type": "string" } },
+        "buyer_roles": { "type": "array", "items": { "type": "string" } },
+        "urgency_evidence": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "solution_summary_public": { "type": "string" },
+    "differentiators_public": { "type": "array", "items": { "type": "string" } },
+    "verified_capabilities": { "type": "array", "items": { "type": "string" } },
+    "unverified_claims": { "type": "array", "items": { "type": "string" } },
+    "maturity": { "type": "string", "enum": ["UNVERIFIED", "CONCEPT", "SPECIFICATION", "PROTOTYPE", "RUNNABLE_DEMO", "TESTED_IMPLEMENTATION", "DEPLOYABLE_PRODUCT", "PRODUCTION_USED", "REVENUE_GENERATING"] },
+    "deployment_status": { "type": "string", "enum": ["UNVERIFIED", "NOT_DEPLOYED", "DEPLOYABLE_UNVERIFIED", "DEPLOYED"] },
+    "test_status": { "type": "string", "enum": ["UNVERIFIED", "NONE", "TESTS_PRESENT_NOT_RUN", "TESTS_PASSING_LOCAL", "TESTS_PASSING_CI"] },
+    "revenue_status": { "type": "string", "enum": ["UNKNOWN", "NONE_VERIFIED", "VERIFIED"] },
+    "traction_status": { "type": "string", "enum": ["UNKNOWN", "NONE_VERIFIED", "VERIFIED"] },
+    "source_provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["source_id", "locator", "commit_sha_or_export_id", "evidence_paths", "last_verified"],
+        "properties": {
+          "source_id": { "type": "string", "minLength": 1 },
+          "locator": { "type": "string", "minLength": 1 },
+          "commit_sha_or_export_id": { "type": "string", "minLength": 7 },
+          "evidence_paths": { "type": "array", "items": { "type": "string" } },
+          "last_verified": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}" }
+        }
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "target"],
+        "properties": {
+          "type": { "type": "string", "enum": ["DERIVED_FROM", "IMPLEMENTS", "DEPENDS_ON", "OVERLAPS_WITH", "INTEGRATES_WITH", "SUPERSEDES", "CONTAINS", "LICENSED_FROM", "CONTRIBUTED_BY"] },
+          "target": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "ownership": {
+      "type": "object",
+      "required": ["status", "contributors", "third_party_components", "licenses", "transfer_restrictions"],
+      "properties": {
+        "status": { "type": "string", "enum": ["UNVERIFIED", "ATTRIBUTED_PENDING_REVIEW", "VERIFIED"] },
+        "contributors": { "type": "array" },
+        "third_party_components": { "type": "array" },
+        "licenses": { "type": "array" },
+        "transfer_restrictions": { "type": "array" }
+      }
+    },
+    "ip_classification": { "type": "string", "enum": ["CONFIDENTIAL_UNTIL_REVIEW", "PUBLIC", "CONFIDENTIAL_NDA", "RESTRICTED"] },
+    "security_review_status": { "type": "string", "enum": ["NOT_STARTED", "AUTOMATED_SCAN_ONLY", "REVIEWED"] },
+    "market_validation": {
+      "type": "object",
+      "properties": {
+        "date_checked": { "type": "string" },
+        "buyer_pain_sources": { "type": "array" },
+        "competing_products": { "type": "array" },
+        "comparable_closed_sales": { "type": "array" },
+        "comparability_notes": { "type": "string" }
+      }
+    },
+    "valuation": {
+      "type": "object",
+      "required": ["method", "currency", "realized_comparable_median", "realized_comparable_mean", "sample_size", "confidence", "recommended_exit_price", "recommended_price_range", "pricing_basis", "assumptions", "exclusions", "source_urls"],
+      "properties": {
+        "method": { "type": "string" },
+        "currency": { "type": "string", "enum": ["USD"] },
+        "realized_comparable_median": { "type": ["number", "null"] },
+        "realized_comparable_mean": { "type": ["number", "null"] },
+        "sample_size": { "type": "integer" },
+        "confidence": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "recommended_exit_price": { "type": ["number", "null"] },
+        "recommended_price_range": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": ["number", "null"] } },
+        "pricing_basis": { "type": "string", "enum": ["REALIZED_TRANSACTIONS", "PROXY", "PROVISIONAL_ESTIMATE", "NOT_PRICED"] },
+        "assumptions": { "type": "array", "items": { "type": "string" } },
+        "exclusions": { "type": "array", "items": { "type": "string" } },
+        "source_urls": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "acquisition_packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["package_name", "price", "rights_granted", "exclusions", "support_period", "transfer_deliverables"],
+        "properties": {
+          "package_name": { "type": "string", "minLength": 1 },
+          "package_type": { "type": "string", "enum": ["LICENSE_NON_EXCLUSIVE", "SOURCE_TRANSFER", "EXCLUSIVE_RIGHTS", "BUNDLE", "BUSINESS_ACQUISITION"] },
+          "price": { "type": ["number", "null"] },
+          "price_range": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": ["number", "null"] } },
+          "rights_granted": { "type": "string" },
+          "exclusions": { "type": "array", "items": { "type": "string" } },
+          "support_period": { "type": "string" },
+          "transfer_deliverables": { "type": "array", "items": { "type": "string" } },
+          "availability": { "type": "string" }
+        }
+      }
+    },
+    "buyer_assets": {
+      "type": "object",
+      "required": ["public_page", "pitch_deck", "slide_deck", "demo", "demo_type", "listing_copy", "diligence_index", "handover_plan"],
+      "properties": {
+        "public_page": { "type": "string" },
+        "pitch_deck": { "type": "string" },
+        "slide_deck": { "type": "string" },
+        "demo": { "type": "string" },
+        "demo_type": { "type": "string", "enum": ["NOT_CREATED", "WORKING_DEMO", "RECORDED_RUN", "SIMULATION", "CLICKABLE_PROTOTYPE"] },
+        "listing_copy": { "type": "string" },
+        "diligence_index": { "type": "string" },
+        "handover_plan": { "type": "string" }
+      }
+    },
+    "contact_cta": { "type": "string" },
+    "status": { "type": "string", "enum": ["DISCOVERY", "RIGHTS_REVIEW", "PACKAGED", "APPROVED_FOR_PUBLICATION", "PUBLISHED", "ON_HOLD"] },
+    "blockers": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "last_reviewed": { "type": "string" },
+    "publication": {
+      "type": "object",
+      "required": ["approved"],
+      "properties": {
+        "approved": { "type": "boolean" },
+        "approved_by": { "type": ["string", "null"] },
+        "approved_on": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

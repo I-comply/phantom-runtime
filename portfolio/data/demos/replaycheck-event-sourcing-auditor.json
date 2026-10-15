@@ -1,0 +1,24 @@
+{
+  "slug": "replaycheck-event-sourcing-auditor",
+  "asset_id": "PWX-ASSET-000003",
+  "demo_type": "RECORDED_RUN",
+  "title": "Catch a hidden wall-clock read, then pass a clean reducer",
+  "recorded_on": "2026-10-15",
+  "environment": {
+    "node": "v22.22.0",
+    "python": "Python 3.13.16"
+  },
+  "disclosure": "Recorded output of the real code run on synthetic data. Not a hosted service; not production behavior.",
+  "steps": [
+    "The synthetic reducer stamps each state with time.time().",
+    "replaycheck reports the diverging field and event number and exits 1."
+  ],
+  "limitations": "Synthetic reducer; recorded run of the real tool.",
+  "runs": [
+    {
+      "command": "python3 -m replaycheck run --store counter-events.jsonl --reducer buggy_reducer.py",
+      "exit_code": 1,
+      "transcript": "replaycheck: 3 events, checks: event-mutation, determinism\nERROR [determinism] at event #1: state diverges between runs with different hash seed/clock/RNG/uuid\n    first differing field: $.stamped_at\n    event: {\"type\": \"tick\"}\nFAIL"
+    }
+  ]
+}

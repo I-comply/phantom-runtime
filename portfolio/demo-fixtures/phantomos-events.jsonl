@@ -1,0 +1,5 @@
+{"event_type": "init", "payload": {"account": "demo-acct", "currency": "USD"}}
+{"event_type": "deposit", "payload": {"asset": "USDC", "amount": "100.00"}}
+{"event_type": "deposit", "payload": {"asset": "USDC", "amount": "25.50"}}
+{"event_type": "withdraw", "payload": {"asset": "USDC", "amount": "10.25"}}
+{"event_type": "update", "payload": {"label": "synthetic demo data"}}

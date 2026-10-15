@@ -1,0 +1,25 @@
+{
+  "slug": "temporal-kernel-workflow-node",
+  "asset_id": "PWX-ASSET-000004",
+  "demo_type": "RECORDED_RUN",
+  "title": "Lease, crash, recover — watch the fence token advance",
+  "recorded_on": "2026-10-15",
+  "environment": {
+    "node": "v22.22.0",
+    "python": "Python 3.13.16"
+  },
+  "disclosure": "Recorded output of the real code run on synthetic data. Not a hosted service; not production behavior.",
+  "steps": [
+    "Node A leases a task with fence 2.",
+    "Node A dies; Node B recovers and leases with fence 3.",
+    "The workflow finishes with 11 recorded events."
+  ],
+  "limitations": "In-process simulation of node failure on one machine; recorded run of the real code.",
+  "runs": [
+    {
+      "command": "python3 -m tkernel demo",
+      "exit_code": 0,
+      "transcript": "A leased charge_card fence 2\nnode A dies; B recovers\nB leased charge_card fence 3\nfinal done events 11"
+    }
+  ]
+}

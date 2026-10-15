@@ -1,0 +1,24 @@
+{
+  "slug": "icomply-ordinance-monitor",
+  "asset_id": "PWX-ASSET-000006",
+  "demo_type": "RECORDED_RUN",
+  "title": "Run the iComply test suite (signing, SSRF guard, change detection)",
+  "recorded_on": "2026-10-15",
+  "environment": {
+    "node": "v22.22.0",
+    "python": "Python 3.13.16"
+  },
+  "disclosure": "Recorded output of the real code run on synthetic data. Not a hosted service; not production behavior.",
+  "steps": [
+    "The suite exercises webhook signing, SSRF protections and change detection with synthetic inputs.",
+    "The recorded output lists 30 passing tests and 1 skipped integration test."
+  ],
+  "limitations": "Test-suite run, not a hosted product demo. A hosted sandbox was not created.",
+  "runs": [
+    {
+      "command": "npx vitest run",
+      "exit_code": 0,
+      "transcript": "RUN  v5.0.4 <repo>/icomply\n\n\n Test Files  2 passed | 1 skipped (3)\n      Tests  30 passed | 1 skipped (31)\n   Start at <time>\n   Duration <t>\n\n\n(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:\n  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `\"type\": \"module\"` in the closest package.json\nSet `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning."
+    }
+  ]
+}

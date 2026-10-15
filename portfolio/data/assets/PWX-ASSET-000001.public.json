@@ -1,0 +1,207 @@
+{
+  "asset_id": "PWX-ASSET-000001",
+  "slug": "ctal-assurance-ledger",
+  "name": "CTAL — Continuous Trust and Assurance Ledger",
+  "brand": "PhantomworX + i-Comply",
+  "creator_attribution": "Daniel Ron Stevens",
+  "disposition": "PURSUE",
+  "asset_type": "library",
+  "category": "AI governance & assurance",
+  "one_line_value_proposition": "A fail-closed gate that releases a protected action only when content and license checks both pass, and records every decision in a signed, offline-verifiable ledger.",
+  "buyer_problem": "Teams that release AI-generated or licensed content must show why each release was allowed. Logs held in the operator's own database are weak evidence: whoever controls the database controls the record.",
+  "solution_summary_public": "CTAL runs AQPD (content acceptability) and CLES (license entitlement) as separate checks, combines them with a fail-closed decision matrix, signs the result as an Ed25519 assurance envelope, and appends it to a tenant-scoped, hash-chained ledger. A signed export can be verified offline with a pinned key.",
+  "maturity": "TESTED_IMPLEMENTATION",
+  "deployment_status": "DEPLOYABLE_UNVERIFIED",
+  "test_status": "TESTS_PASSING_CI",
+  "revenue_status": "NONE_VERIFIED",
+  "traction_status": "NONE_VERIFIED",
+  "contact_cta": "Request acquisition details",
+  "last_reviewed": "2026-10-15",
+  "differentiators_public": [
+    "Two independent checks combined by an exhaustively tested fail-closed matrix (49 combinations; only ACCEPT + AUTHORIZED proceeds by default).",
+    "Offline verifier states what it did and did not establish, rather than only returning pass/fail.",
+    "Tenant isolation, idempotent retries, key rotation/revocation and reversible migrations are implemented and tested."
+  ],
+  "verified_capabilities": [
+    "Fail-closed orchestration verified for timeout, exception, invalid result and signing failure (tests: test_gate).",
+    "Signed assurance envelope; any field change, addition, removal or key/algorithm swap fails verification (test_envelope).",
+    "Tenant-scoped hash-chained ledger with tamper detection for edit, delete, reorder, substitute and truncate (test_ledger, test_export).",
+    "Signed export and standalone offline verifier with pinned trust root (test_export; `python3 -m ctal demo`).",
+    "License activation limits, live per-tenant revocation, incident-to-regression replay, metrics, TLS and rate limiting (test_online).",
+    "92 tests pass locally (pytest, Python 3.13, 2026-10-15); GitHub Actions workflow 'ctal' succeeded on main at 934c993 (Python 3.9 and 3.12)."
+  ],
+  "unverified_claims": [
+    "Production AQPD detection accuracy: the AQPD engine is a deliberately simple reference engine and makes no accuracy claim.",
+    "Behavior under production load or multi-node deployment (SQLite single-writer)."
+  ],
+  "target_buyer": {
+    "segments": [
+      "AI platform vendors",
+      "Content licensing platforms",
+      "Regulated-industry AI teams"
+    ],
+    "buyer_roles": [
+      "Head of AI platform",
+      "Trust & safety lead",
+      "Compliance / audit lead"
+    ]
+  },
+  "acquisition_packages": [
+    {
+      "package_name": "Non-exclusive source license",
+      "package_type": "LICENSE_NON_EXCLUSIVE",
+      "price_range": [
+        3000,
+        14500
+      ],
+      "rights_granted": "Defined internal-use rights to the listed source and documentation; no ownership transfer; seller keeps the right to license others.",
+      "exclusions": [
+        "Ownership",
+        "Exclusivity",
+        "Shared components not listed in the agreement",
+        "Trademarks and brand names"
+      ],
+      "support_period": "30 days of clarification support after delivery",
+      "transfer_deliverables": [
+        "Source snapshot at a named commit",
+        "Build/run/test instructions",
+        "Dependency and license inventory"
+      ],
+      "availability": "Available after NDA and rights review."
+    },
+    {
+      "package_name": "Asset-only source-code transfer",
+      "package_type": "SOURCE_TRANSFER",
+      "price_range": [
+        19500,
+        47500
+      ],
+      "rights_granted": "Assignment of the seller's rights in the enumerated source files, subject to third-party licenses and counsel-reviewed terms.",
+      "exclusions": [
+        "Unrelated shared components",
+        "Third-party code and its licenses",
+        "Customer data (none exists)",
+        "Any operating business"
+      ],
+      "support_period": "60 days of handover support after delivery",
+      "transfer_deliverables": [
+        "Source snapshot and tagged commit",
+        "Documentation and test evidence",
+        "Checksums manifest",
+        "Handover session"
+      ],
+      "availability": "Available after NDA, diligence and rights review."
+    },
+    {
+      "package_name": "Exclusive rights",
+      "package_type": "EXCLUSIVE_RIGHTS",
+      "rights_granted": "Exclusive rights, only if the rights review confirms exclusivity is supportable.",
+      "exclusions": [
+        "Anything the rights review cannot confirm"
+      ],
+      "support_period": "To be agreed",
+      "transfer_deliverables": [
+        "As for source-code transfer"
+      ],
+      "availability": "Priced on request; not offered until ownership and third-party license review is complete."
+    }
+  ],
+  "valuation_public": {
+    "pricing_basis": "PROVISIONAL_ESTIMATE",
+    "confidence": "LOW",
+    "range": [
+      19500,
+      47500
+    ],
+    "license_range": [
+      3000,
+      14500
+    ],
+    "statement": "Provisional estimate, confidence LOW. No verified realized-sale comparable exists for a pre-revenue, zero-traction source-code asset of this kind in the evidence reviewed (realized-comparable sample size: 0). The range is derived from a stated replacement-cost model and is not a realized-sale average. Negotiable."
+  },
+  "public": {
+    "headline": "Prove every AI release decision — and let your auditor verify it without trusting your database.",
+    "subheadline": "CTAL gates a protected action behind two independent checks (content acceptability and license entitlement), signs each decision, and exports an evidence package that an independent offline program can verify.",
+    "cost_of_inaction": "Release decisions that cannot be independently evidenced are hard to defend in an audit or dispute. This is a qualitative risk statement; no market statistic is cited.",
+    "public_limitations": [
+      "AQPD and CLES here are reference implementations; the production engines were not supplied. Optional adapters run externally supplied JS engines; crypto.js is a labelled reconstruction.",
+      "A hash chain alone does not stop a database administrator who rewrites history and recomputes hashes; customers must retain earlier signed exports.",
+      "The export signing key is the offline trust root; its holder can sign a forged export.",
+      "Single-node SQLite; no HA."
+    ],
+    "architecture_public": [
+      "Request → AQPD check + CLES check → fail-closed decision matrix → signed assurance envelope → tenant-scoped hash-chained ledger → signed export → offline verifier.",
+      "Python 3.9+ with the `cryptography` library; optional Node 22 bridge for externally supplied JS engines."
+    ],
+    "risk_summary": "Reference-grade AQPD/CLES engines (no accuracy claim); single-node SQLite; ownership and AI-authorship review pending; no revenue or customers.",
+    "valuation_public": {
+      "pricing_basis": "PROVISIONAL_ESTIMATE",
+      "confidence": "LOW",
+      "range": [
+        19500,
+        47500
+      ],
+      "license_range": [
+        3000,
+        14500
+      ],
+      "statement": "Provisional estimate, confidence LOW. No verified realized-sale comparable exists for a pre-revenue, zero-traction source-code asset of this kind in the evidence reviewed (realized-comparable sample size: 0). The range is derived from a stated replacement-cost model and is not a realized-sale average. Negotiable."
+    },
+    "faq": [
+      {
+        "q": "What rights transfer?",
+        "a": "Only what a signed agreement lists. The offered packages are: non-exclusive source license; asset-only source-code transfer; exclusive rights (subject to rights review). No rights are implied beyond the written scope, and exclusivity is offered only after a rights review confirms it is supportable."
+      },
+      {
+        "q": "What is the implementation status?",
+        "a": "Tested implementation: 92 passing tests and green CI. Not verified in production use."
+      },
+      {
+        "q": "Does it have customers or revenue?",
+        "a": "No revenue, customers or usage metrics are claimed or verified. This is a technology asset, not an operating business."
+      },
+      {
+        "q": "What dependencies does it have?",
+        "a": "Python `cryptography` (Ed25519) plus the standard library; optional Node 22 for the JS adapter. Full dependency and license inventory is provided in the private diligence package."
+      },
+      {
+        "q": "What is the handover and support?",
+        "a": "Source transfer with documentation, build/test instructions and a time-boxed knowledge-transfer session. Support terms are set per package and finalized in the agreement."
+      },
+      {
+        "q": "What are the known risks?",
+        "a": "Reference-grade AQPD/CLES engines (no accuracy claim); single-node SQLite; ownership and AI-authorship review pending; no revenue or customers."
+      }
+    ],
+    "demo": {
+      "title": "Run the end-to-end CTAL demonstration",
+      "type": "RECORDED_RUN",
+      "command": "python3 -m ctal demo",
+      "steps": [
+        "The demo creates a temporary ledger with development keys and synthetic content.",
+        "It gates content under six AQPD/CLES combinations.",
+        "It exports a signed evidence package and verifies it offline (exit 0).",
+        "It tampers with one envelope and shows the verifier fail (exit 1)."
+      ],
+      "limitations": "Development keys and synthetic data only. Recorded output of a real run; not a hosted service.",
+      "expect": [
+        "offline verifier exit code (untampered): 0",
+        "offline verifier exit code (tampered envelope): 1"
+      ]
+    },
+    "diligence_preview": [
+      "Tests: Tested implementation: 92 passing tests and green CI. Not verified in production use.",
+      "Dependencies: Python `cryptography` (Ed25519) plus the standard library; optional Node 22 for the JS adapter. Full dependency and license inventory is provided in the private diligence package.",
+      "License: Proprietary — all rights reserved (LICENSE)",
+      "Security posture: automated secret and pattern scan only; no manual security review yet.",
+      "Known limitations: AQPD and CLES here are reference implementations; the production engines were not supplied. Optional adapters run externally supplied JS engines; crypto.js is a labelled reconstruction. A hash chain alone does not stop a database administrator who rewrites history and recomputes hashes; customers must retain earlier signed exports. The export signing key is the offline trust root; its holder can sign a forged export. Single-node SQLite; no HA."
+    ],
+    "stats": {
+      "src_loc": 3091,
+      "test_loc": 1716
+    }
+  },
+  "publication": {
+    "approved": false
+  }
+}

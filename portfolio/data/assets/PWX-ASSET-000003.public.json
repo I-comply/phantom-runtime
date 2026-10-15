@@ -1,0 +1,198 @@
+{
+  "asset_id": "PWX-ASSET-000003",
+  "slug": "replaycheck-event-sourcing-auditor",
+  "name": "replaycheck — Event-Sourcing Determinism Auditor",
+  "brand": "PhantomworX + i-Comply",
+  "creator_attribution": "Daniel Ron Stevens",
+  "disposition": "PURSUE",
+  "asset_type": "developer_tool",
+  "category": "Developer tooling / event sourcing",
+  "one_line_value_proposition": "Checks that an event-sourced system's state always equals the fold of its events, and points at the first event where it does not.",
+  "buyer_problem": "Event-sourced systems assume state can always be rebuilt from events. Hidden clock reads, random IDs, set ordering or event mutation silently break that assumption.",
+  "solution_summary_public": "You provide two functions (initial, apply). replaycheck runs determinism, event-mutation, state-type, snapshot, projection and upcast checks against JSONL or SQLite stores and exits non-zero with a pointer on failure.",
+  "maturity": "TESTED_IMPLEMENTATION",
+  "deployment_status": "DEPLOYABLE_UNVERIFIED",
+  "test_status": "TESTS_PASSING_CI",
+  "revenue_status": "NONE_VERIFIED",
+  "traction_status": "NONE_VERIFIED",
+  "contact_cta": "Request acquisition details",
+  "last_reviewed": "2026-10-15",
+  "differentiators_public": [
+    "Perturbs hash seed, clock, RNG and uuid4 across separate processes and compares a state digest after every event.",
+    "Ships seeded-bug fixtures — each bug class fails with a pointer, the clean reducer passes.",
+    "Includes a working adapter for a production reconstructor (PhantomOS) exercised in CI."
+  ],
+  "verified_capabilities": [
+    "21 tests pass locally (unittest, 2026-10-15); GitHub Actions workflow 'replaycheck' succeeded on main at 934c993.",
+    "Six checks: determinism, event-mutation, state-type, snapshot, projection, upcast.",
+    "Machine-readable output (`--format json`) and exit codes 0/1/2."
+  ],
+  "unverified_claims": [
+    "Coverage of non-determinism sources beyond those it perturbs (see limits)."
+  ],
+  "target_buyer": {
+    "segments": [
+      "Teams running event-sourced services",
+      "Fintech and ledger engineering",
+      "Platform teams migrating event stores"
+    ],
+    "buyer_roles": [
+      "Staff / principal engineer",
+      "Engineering manager, data platform"
+    ]
+  },
+  "acquisition_packages": [
+    {
+      "package_name": "Non-exclusive source license",
+      "package_type": "LICENSE_NON_EXCLUSIVE",
+      "price_range": [
+        500,
+        2000
+      ],
+      "rights_granted": "Defined internal-use rights to the listed source and documentation; no ownership transfer; seller keeps the right to license others.",
+      "exclusions": [
+        "Ownership",
+        "Exclusivity",
+        "Shared components not listed in the agreement",
+        "Trademarks and brand names"
+      ],
+      "support_period": "30 days of clarification support after delivery",
+      "transfer_deliverables": [
+        "Source snapshot at a named commit",
+        "Build/run/test instructions",
+        "Dependency and license inventory"
+      ],
+      "availability": "Available after NDA and rights review."
+    },
+    {
+      "package_name": "Asset-only source-code transfer",
+      "package_type": "SOURCE_TRANSFER",
+      "price_range": [
+        3000,
+        6500
+      ],
+      "rights_granted": "Assignment of the seller's rights in the enumerated source files, subject to third-party licenses and counsel-reviewed terms.",
+      "exclusions": [
+        "Unrelated shared components",
+        "Third-party code and its licenses",
+        "Customer data (none exists)",
+        "Any operating business"
+      ],
+      "support_period": "60 days of handover support after delivery",
+      "transfer_deliverables": [
+        "Source snapshot and tagged commit",
+        "Documentation and test evidence",
+        "Checksums manifest",
+        "Handover session"
+      ],
+      "availability": "Available after NDA, diligence and rights review."
+    },
+    {
+      "package_name": "Exclusive rights",
+      "package_type": "EXCLUSIVE_RIGHTS",
+      "rights_granted": "Exclusive rights, only if the rights review confirms exclusivity is supportable.",
+      "exclusions": [
+        "Anything the rights review cannot confirm"
+      ],
+      "support_period": "To be agreed",
+      "transfer_deliverables": [
+        "As for source-code transfer"
+      ],
+      "availability": "Priced on request; not offered until ownership and third-party license review is complete."
+    }
+  ],
+  "valuation_public": {
+    "pricing_basis": "PROVISIONAL_ESTIMATE",
+    "confidence": "LOW",
+    "range": [
+      3000,
+      6500
+    ],
+    "license_range": [
+      500,
+      2000
+    ],
+    "statement": "Provisional estimate, confidence LOW. No verified realized-sale comparable exists for a pre-revenue, zero-traction source-code asset of this kind in the evidence reviewed (realized-comparable sample size: 0). The range is derived from a stated replacement-cost model and is not a realized-sale average. Negotiable."
+  },
+  "public": {
+    "headline": "Find the event where your replay stops being deterministic.",
+    "subheadline": "replaycheck re-folds your event log in fresh processes with perturbed time, randomness and hash seeds, then reports the first diverging event and field.",
+    "cost_of_inaction": "Non-deterministic reducers surface late, as unreproducible state differences after a replay or migration. Qualitative statement; no statistic cited.",
+    "public_limitations": [
+      "JSONL and SQLite stores only; Python reducers only; no pytest plugin.",
+      "Does not catch date.today(), os.urandom, secrets, network/env/filesystem reads or thread ordering.",
+      "Determinism evidence is sampled (N runs), not proof."
+    ],
+    "architecture_public": [
+      "Store reader (JSONL/SQLite) → reducer adapter → N isolated runs with perturbation → digest comparison → findings."
+    ],
+    "risk_summary": "Narrow scope by design (limits above); no revenue or customers; ownership and AI-authorship review pending.",
+    "valuation_public": {
+      "pricing_basis": "PROVISIONAL_ESTIMATE",
+      "confidence": "LOW",
+      "range": [
+        3000,
+        6500
+      ],
+      "license_range": [
+        500,
+        2000
+      ],
+      "statement": "Provisional estimate, confidence LOW. No verified realized-sale comparable exists for a pre-revenue, zero-traction source-code asset of this kind in the evidence reviewed (realized-comparable sample size: 0). The range is derived from a stated replacement-cost model and is not a realized-sale average. Negotiable."
+    },
+    "faq": [
+      {
+        "q": "What rights transfer?",
+        "a": "Only what a signed agreement lists. The offered packages are: non-exclusive source license; asset-only source-code transfer; exclusive rights (subject to rights review). No rights are implied beyond the written scope, and exclusivity is offered only after a rights review confirms it is supportable."
+      },
+      {
+        "q": "What is the implementation status?",
+        "a": "Tested implementation: 21 passing tests locally and green CI."
+      },
+      {
+        "q": "Does it have customers or revenue?",
+        "a": "No revenue, customers or usage metrics are claimed or verified. This is a technology asset, not an operating business."
+      },
+      {
+        "q": "What dependencies does it have?",
+        "a": "Python 3.9+ standard library only."
+      },
+      {
+        "q": "What is the handover and support?",
+        "a": "Source transfer with documentation, build/test instructions and a time-boxed knowledge-transfer session. Support terms are set per package and finalized in the agreement."
+      },
+      {
+        "q": "What are the known risks?",
+        "a": "Narrow scope by design (limits above); no revenue or customers; ownership and AI-authorship review pending."
+      }
+    ],
+    "demo": {
+      "title": "Catch a hidden wall-clock read, then pass a clean reducer",
+      "type": "RECORDED_RUN",
+      "command": "python3 -m replaycheck run --store counter-events.jsonl --reducer buggy_reducer.py",
+      "steps": [
+        "The synthetic reducer stamps each state with time.time().",
+        "replaycheck reports the diverging field and event number and exits 1."
+      ],
+      "limitations": "Synthetic reducer; recorded run of the real tool.",
+      "expect": [
+        "first differing field: $.stamped_at",
+        "FAIL"
+      ]
+    },
+    "diligence_preview": [
+      "Tests: Tested implementation: 21 passing tests locally and green CI.",
+      "Dependencies: Python 3.9+ standard library only.",
+      "License: Proprietary — all rights reserved (LICENSE)",
+      "Security posture: automated secret and pattern scan only; no manual security review yet.",
+      "Known limitations: JSONL and SQLite stores only; Python reducers only; no pytest plugin. Does not catch date.today(), os.urandom, secrets, network/env/filesystem reads or thread ordering. Determinism evidence is sampled (N runs), not proof."
+    ],
+    "stats": {
+      "src_loc": 437,
+      "test_loc": 226
+    }
+  },
+  "publication": {
+    "approved": false
+  }
+}
