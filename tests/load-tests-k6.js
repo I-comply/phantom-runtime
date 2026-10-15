@@ -1,9 +1,12 @@
-"""
-K6 Load Testing Scenarios - JavaScript
-Tests sustained load, burst traffic, database stress
-"""
-
-// k6 run tests/load-tests-k6.js
+/*
+ * K6 Load Testing Scenarios
+ * Tests sustained load, burst traffic, database stress.
+ *
+ * Needs a running backend and the one-time bootstrap key (PHANTOM_BOOTSTRAP_ADMIN_KEY):
+ *   k6 run -e BASE_URL=http://localhost:8001 -e BOOTSTRAP_KEY=<key> tests/load-tests-k6.js
+ * setup() creates one workspace and an `agent` API key for it with the bootstrap key; every VU
+ * then writes with that key. Writes need X-API-Key and workspace creation is closed to anonymous callers.
+ */
 
 import http from 'k6/http';
 import { check, group, sleep } from 'k6';
@@ -18,6 +21,7 @@ let requestCount = new Counter('requests_total');
 
 // Test configuration
 export let options = {
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   stages: [
     { duration: '30s', target: 10 },    // Ramp up to 10 users
     { duration: '1m30s', target: 50 },  // Ramp up to 50 users
@@ -34,29 +38,39 @@ export let options = {
   },
 };
 
-export default function () {
-  const baseUrl = 'http://localhost:8001';
-  let workspaceId = 'ws_' + __VU + '_' + __ITER;
-  
+const baseUrl = __ENV.BASE_URL || 'http://localhost:8001';
+
+export function setup() {
+  if (!__ENV.BOOTSTRAP_KEY) {
+    throw new Error('set -e BOOTSTRAP_KEY=<PHANTOM_BOOTSTRAP_ADMIN_KEY>');
+  }
+  const res = http.post(`${baseUrl}/api/workspaces/`, JSON.stringify({ name: 'LoadTest_' + Date.now() }), {
+    headers: { 'Content-Type': 'application/json', 'X-Bootstrap-Key': __ENV.BOOTSTRAP_KEY },
+  });
+  if (res.status !== 201) {
+    throw new Error('workspace creation failed: ' + res.status + ' ' + res.body);
+  }
+  // The workspace's own pk_ key is not accepted on /api/events: mint an RBAC key for it.
+  const keyRes = http.post(`${baseUrl}/api/v3/security/api-keys`, JSON.stringify({
+    tenant_id: res.json('id'), role: 'agent', name: 'k6-load-test',
+  }), { headers: { 'Content-Type': 'application/json', 'X-Bootstrap-Key': __ENV.BOOTSTRAP_KEY } });
+  if (keyRes.status !== 200) {
+    throw new Error('api key creation failed: ' + keyRes.status + ' ' + keyRes.body);
+  }
+  // Entities are owned by the first workspace that writes them, so ids must be unique per run.
+  return { apiKey: keyRes.json('key'), runId: Date.now().toString(36) };
+}
+
+export default function (data) {
+  const params = { headers: { 'Content-Type': 'application/json', 'X-API-Key': data.apiKey } };
+
   group('Event Creation Load Test', function () {
-    // Create workspace
-    let wsRes = http.post(`${baseUrl}/api/workspaces`, JSON.stringify({
-      name: 'LoadTest_' + __ITER,
-      description: 'Load test workspace'
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-    
-    check(wsRes, {
-      'workspace created': (r) => r.status === 201 || r.status === 200,
-    });
-    
     // Create multiple events
     for (let i = 0; i < 5; i++) {
       let startTime = new Date();
       
-      let eventRes = http.post(`${baseUrl}/api/events`, JSON.stringify({
-        entity_id: `entity_${__VU}_${i}`,
+      let eventRes = http.post(`${baseUrl}/api/events/`, JSON.stringify({
+        entity_id: `entity_${data.runId}_${__VU}_${i}`,
         event_type: i === 0 ? 'init' : 'update',
         payload: {
           index: i,
@@ -64,9 +78,7 @@ export default function () {
           value: Math.random() * 1000,
           batch: __ITER
         }
-      }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }), params);
       
       let duration = new Date() - startTime;
       eventCreationTime.add(duration);
@@ -77,9 +89,7 @@ export default function () {
         'event response time < 500ms': (r) => r.timings.duration < 500,
       });
       
-      if (eventRes.status !== 200 && eventRes.status !== 201) {
-        apiErrorRate.add(1);
-      }
+      apiErrorRate.add(eventRes.status !== 200 && eventRes.status !== 201);
       
       sleep(0.1);
     }
@@ -88,7 +98,7 @@ export default function () {
   group('State Reconstruction Load Test', function () {
     let startTime = new Date();
     
-    let stateRes = http.get(`${baseUrl}/api/state/entity_${__VU}_0`);
+    let stateRes = http.get(`${baseUrl}/api/state/entity_${data.runId}_${__VU}_0`, params);
     
     let duration = new Date() - startTime;
     stateReconstructionTime.add(duration);
@@ -97,25 +107,23 @@ export default function () {
     check(stateRes, {
       'state retrieved': (r) => r.status === 200,
       'reconstruction time < 200ms': (r) => r.timings.duration < 200,
-      'has state data': (r) => r.body.includes('state'),
+      'has state data': (r) => !!r.body && r.body.includes('state'),
     });
     
-    if (stateRes.status !== 200) {
-      apiErrorRate.add(1);
-    }
+    apiErrorRate.add(stateRes.status !== 200);
   });
   
   group('High Concurrency Scenario', function () {
     // Simulate concurrent requests
     let responses = http.batch([
-      ['GET', `${baseUrl}/api/state/entity_${__VU}_0`],
-      ['GET', `${baseUrl}/api/state/entity_${__VU}_1`],
-      ['GET', `${baseUrl}/api/state/entity_${__VU}_2`],
-      ['POST', `${baseUrl}/api/events`, JSON.stringify({
-        entity_id: `entity_${__VU}_concurrent`,
+      ['GET', `${baseUrl}/api/state/entity_${data.runId}_${__VU}_0`, null, params],
+      ['GET', `${baseUrl}/api/state/entity_${data.runId}_${__VU}_1`, null, params],
+      ['GET', `${baseUrl}/api/state/entity_${data.runId}_${__VU}_2`, null, params],
+      ['POST', `${baseUrl}/api/events/`, JSON.stringify({
+        entity_id: `entity_${data.runId}_${__VU}_concurrent`,
         event_type: 'update',
         payload: { concurrent: true, vu: __VU }
-      })],
+      }), params],
     ]);
     
     let successCount = responses.filter(r => r.status === 200 || r.status === 201).length;
@@ -130,15 +138,19 @@ export default function () {
 }
 
 export function handleSummary(data) {
-  console.log('K6 Load Test Summary:');
-  console.log('=====================');
-  console.log('Requests: ' + data.metrics.requests_total.value);
-  console.log('Event Creation - P95: ' + data.metrics.event_creation_time.values['p(95)']);
-  console.log('Reconstruction - P95: ' + data.metrics.state_reconstruction_time.values['p(95)']);
-  console.log('Error Rate: ' + (data.metrics.api_errors.value * 100).toFixed(2) + '%');
-  
+  const m = data.metrics;
+  const text = [
+    'K6 Load Test Summary',
+    '====================',
+    'Requests: ' + m.http_reqs.values.count,
+    'Event Creation - P95: ' + m.event_creation_time.values['p(95)'] + ' ms',
+    'Reconstruction - P95: ' + m.state_reconstruction_time.values['p(95)'] + ' ms',
+    'HTTP P95 / P99: ' + m.http_req_duration.values['p(95)'] + ' / ' + m.http_req_duration.values['p(99)'] + ' ms',
+    'Error Rate: ' + (m.api_errors.values.rate * 100).toFixed(2) + '%',
+    '',
+  ].join('\n');
   return {
-    'stdout': data.summary,
-    'json': JSON.stringify(data, null, 2),
+    stdout: text,
+    'k6-summary.json': JSON.stringify(data, null, 2),
   };
 }
