@@ -19,10 +19,10 @@ def load_events(path, table="events", payload_col="payload", order_col="rowid"):
     if head.startswith(b"SQLite format 3"):
         with _ro(path) as c:
             c.row_factory = sqlite3.Row
-            cols = [r[1] for r in c.execute("PRAGMA table_info(%s)" % _ident(table))]
+            cols = [r[1] for r in c.execute("PRAGMA table_info(%s)" % _ident(table))]  # nosem: phantom.python.sql-string-building -- _ident() restricts to [A-Za-z0-9_]
             if not cols:
                 raise SystemExit("error: table %r not found in %s" % (table, path))
-            rows = c.execute("SELECT * FROM %s ORDER BY %s" % (_ident(table), _ident(order_col))).fetchall()
+            rows = c.execute("SELECT * FROM %s ORDER BY %s" % (_ident(table), _ident(order_col))).fetchall()  # nosem: phantom.python.sql-string-building -- _ident() restricts to [A-Za-z0-9_]
         out = []
         for r in rows:
             if payload_col in cols:
@@ -58,7 +58,7 @@ def load_snapshots(path, table="snapshots"):
         head = f.read(16)
     if head.startswith(b"SQLite format 3"):
         with _ro(path) as c:
-            rows = c.execute("SELECT seq, state FROM %s ORDER BY seq" % _ident(table)).fetchall()
+            rows = c.execute("SELECT seq, state FROM %s ORDER BY seq" % _ident(table)).fetchall()  # nosem: phantom.python.sql-string-building -- _ident() restricts to [A-Za-z0-9_]
         return [(int(s), json.loads(st) if isinstance(st, (str, bytes)) else st) for s, st in rows]
     out = []
     with open(path, encoding="utf-8") as f:

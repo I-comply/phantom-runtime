@@ -1,3 +1,4 @@
+# nosem: phantom.docker.missing-user -- root required for sandbox privilege drop (see below)
 FROM python:3.11-slim
 
 # Deliberately root: app/core/sandbox.py's subprocess driver drops privilege to

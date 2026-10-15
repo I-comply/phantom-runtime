@@ -469,7 +469,7 @@ class TenantLedger:
                 q += " AND status=?"
                 a.append(status)
             out = []
-            for r in c.execute(q + " ORDER BY proposed_at, case_id", a):
+            for r in c.execute(q + " ORDER BY proposed_at, case_id", a):  # nosem: phantom.python.sql-string-building -- q is built only from literal fragments; values are bound via ?
                 d = dict(r)
                 d["content"] = base64.b64decode(d.pop("content_b64"))
                 d["provenance"] = json.loads(d["provenance"])
