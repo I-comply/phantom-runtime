@@ -6,11 +6,17 @@ import time
 
 os.environ["GATEWAY_KEYS"] = json.dumps({"service_node_01": "test-secret"})
 
+import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from gateway import app  # noqa: E402
+from gateway import REPLAY_CACHE, ReplayCache, app  # noqa: E402
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _reset_replay_cache():
+    REPLAY_CACHE._seen.clear()
 CID = "service_node_01"
 SECRET = b"test-secret"
 
@@ -72,3 +78,37 @@ def test_client_id_mismatch():
 
 def test_healthz():
     assert client.get("/healthz").json() == {"status": "ok"}
+
+
+def test_replay_rejected():
+    body = _body()
+    ts = str(int(time.time()))
+    assert _post(body, ts=ts).status_code == 200
+    assert _post(body, ts=ts).status_code == 409
+
+
+def test_distinct_timestamps_not_replay():
+    body = _body()
+    now = int(time.time())
+    assert _post(body, ts=str(now - 1)).status_code == 200
+    assert _post(body, ts=str(now)).status_code == 200
+
+
+def test_invalid_signature_not_cached():
+    ts = str(int(time.time()))
+    assert _post(_body(), ts=ts, sig="0" * 64).status_code == 401
+    assert _post(_body(), ts=ts).status_code == 200
+
+
+def test_replay_cache_expiry_and_saturation():
+    from fastapi import HTTPException
+
+    c = ReplayCache(ttl=0.01, max_entries=2)
+    assert c.check_and_add("a", "s1")
+    assert not c.check_and_add("a", "s1")
+    time.sleep(0.02)
+    assert c.check_and_add("a", "s1")
+    c2 = ReplayCache(ttl=60, max_entries=1)
+    assert c2.check_and_add("a", "s1")
+    with pytest.raises(HTTPException):
+        c2.check_and_add("a", "s2")

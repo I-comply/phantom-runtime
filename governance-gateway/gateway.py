@@ -12,6 +12,8 @@ app = FastAPI(title="Cryptographic API Governance Gateway", version="3.0.0")
 ALLOWED_ACTIONS = frozenset({"read", "write", "execute"})
 MAX_DRIFT_SECONDS = 300
 MAX_BODY_BYTES = 64 * 1024
+REPLAY_TTL_SECONDS = MAX_DRIFT_SECONDS * 2
+REPLAY_MAX_ENTRIES = 100_000
 
 
 class PolicyRequest(BaseModel):
@@ -28,6 +30,33 @@ def _load_keys() -> dict[str, bytes]:
 
 
 KEY_STORE: dict[str, bytes] = {}
+
+
+class ReplayCache:
+    """In-process (client_id, signature) seen-set with TTL. Per-instance: multi-replica
+    deployments need a shared store (e.g. Redis SET NX EX) behind the same interface."""
+
+    def __init__(self, ttl: float = REPLAY_TTL_SECONDS, max_entries: int = REPLAY_MAX_ENTRIES):
+        self.ttl = ttl
+        self.max_entries = max_entries
+        self._seen: dict[tuple[str, str], float] = {}
+
+    def check_and_add(self, client_id: str, signature: str) -> bool:
+        """True if fresh (recorded); False if replay. Synchronous => atomic in the event loop."""
+        now = time.monotonic()
+        if len(self._seen) >= self.max_entries:
+            self._seen = {k: t for k, t in self._seen.items() if t > now}
+            if len(self._seen) >= self.max_entries:
+                raise HTTPException(status_code=503, detail="Replay cache saturated.")
+        key = (client_id, signature)
+        exp = self._seen.get(key)
+        if exp is not None and exp > now:
+            return False
+        self._seen[key] = now + self.ttl
+        return True
+
+
+REPLAY_CACHE = ReplayCache()
 
 
 def get_keys() -> dict[str, bytes]:
@@ -57,6 +86,8 @@ async def verify_signature(request: Request) -> str:
     computed = hmac.new(secret, body + timestamp.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(computed, signature):
         raise HTTPException(status_code=401, detail="Signature verification failed.")
+    if not REPLAY_CACHE.check_and_add(client_id, signature):
+        raise HTTPException(status_code=409, detail="Replay detected.")
     return client_id
 
 
