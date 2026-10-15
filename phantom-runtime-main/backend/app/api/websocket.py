@@ -43,17 +43,14 @@ class Principal:
 
 def _verify(raw_key: str) -> Optional[Principal]:
     """Blocking: runs in a worker thread (sync SQLAlchemy must not run on the event loop)."""
-    from app.core.database import SessionLocal
+    from app.core.database import background_session
     from app.core.deps import is_platform_admin
     from app.core.security import SecurityManager, RBACMiddleware
-    db = SessionLocal()
-    try:
+    with background_session() as db:
         key = SecurityManager.verify_api_key(db, raw_key)
         if not key or not RBACMiddleware.check_permission(key, db, "events", "read"):
             return None
         return Principal(str(key.id), str(key.tenant_id), is_platform_admin(key, db))
-    finally:
-        db.close()
 
 
 async def _reject(websocket: WebSocket, code: int, error: str):
@@ -163,20 +160,17 @@ async def websocket_events(websocket: WebSocket):
 
 def _still_valid(principal: Principal) -> Optional[Principal]:
     """Re-check a connected key (blocking). Revocation is by key hash, so look the key up by id."""
-    from app.core.database import SessionLocal
+    from app.core.database import background_session
     from app.core.deps import is_platform_admin
     from app.core.models_v3 import APIKey
     from app.core.security import RBACMiddleware, key_expired
-    db = SessionLocal()
-    try:
+    with background_session() as db:
         key = db.query(APIKey).filter(APIKey.id == principal.key_id, APIKey.is_active == True).first()  # noqa: E712
         if not key or key_expired(key):
             return None
         if not RBACMiddleware.check_permission(key, db, "events", "read"):
             return None
         return Principal(str(key.id), str(key.tenant_id), is_platform_admin(key, db))
-    finally:
-        db.close()
 
 
 _cache: Dict[str, tuple] = {}
@@ -190,20 +184,17 @@ def _counts(principal: Principal) -> Dict[str, int]:
         hit = _cache.get(scope)
         if hit and time.monotonic() - hit[0] < METRICS_CACHE_TTL_S:
             return hit[1]
-    from app.core.database import SessionLocal
+    from app.core.database import background_session
     from app.core.models import Event
     from app.core.models_v2 import EntityWorkspace
     from app.core.models_v3 import EventV3
-    db = SessionLocal()
-    try:
+    with background_session() as db:
         if principal.platform:
             v3, v1 = db.query(EventV3).count(), db.query(Event).count()
         else:
             linked = db.query(EntityWorkspace.entity_id).filter(EntityWorkspace.workspace_id == principal.tenant_id)
             v3 = db.query(EventV3).filter(EventV3.tenant_id == principal.tenant_id).count()
             v1 = db.query(Event).filter(Event.entity_id.in_(linked)).count()
-    finally:
-        db.close()
     out = {"total_events_v3": v3, "total_events_v1": v1, "total_events": v3 + v1}
     with _cache_lock:
         _cache[scope] = (time.monotonic(), out)
