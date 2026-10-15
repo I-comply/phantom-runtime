@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from app.core.database import get_db
 from app.core.event_engine_v3 import EventEngineV3, AsyncEventPipeline
 from app.core.strategy_engine import StrategyEngine
 from app.core.security import SecurityManager, RBACMiddleware
-from app.core.deps import require_permission, require_api_key, is_admin
+from app.core.deps import require_permission, require_api_key, is_platform_admin
 from app.core.config import settings
+from app.api.websocket import publish_event
 from app.core.models_v3 import APIKey
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+import uuid as _uuid
 
 router = APIRouter(prefix="/api/v3", tags=["v3"])
 
@@ -40,6 +42,9 @@ def create_event_v3(
         source=event.source,
         created_by=api_key_obj.name
     )
+    publish_event({"id": created_event.id, "entity_id": created_event.entity_id,
+                   "event_type": created_event.event_type, "block_index": created_event.block_index,
+                   "version": "v3"}, api_key_obj.tenant_id)
 
     return {
         "id": created_event.id,
@@ -57,7 +62,7 @@ def get_event_chain(
 ):
     """Get complete event chain for entity. Scoped to the caller's own tenant
     unless the caller is an admin key (admins see across tenants)."""
-    tenant_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    tenant_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     events = EventEngineV3.get_entity_chain(db, entity_id, tenant_id)
     return {
         "entity_id": entity_id,
@@ -82,7 +87,7 @@ def verify_chain_integrity(
     api_key_obj: APIKey = Depends(require_permission("events", "read")),
 ):
     """Verify hash chain integrity. Same tenant scoping as /events/chain."""
-    tenant_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    tenant_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     is_valid = EventEngineV3.verify_chain_integrity(db, entity_id, tenant_id)
     return {
         "entity_id": entity_id,
@@ -95,9 +100,9 @@ def verify_chain_integrity(
 def queue_event(
     event: EventCreateV3,
     db: Session = Depends(get_db),
-    _auth: APIKey = Depends(require_permission("events", "write")),
+    api_key_obj: APIKey = Depends(require_permission("events", "write")),
 ):
-    """Add event to async queue"""
+    """Add event to async queue (the event will belong to the caller's workspace)"""
     queue_item = AsyncEventPipeline.queue_event(
         db=db,
         entity_id=event.entity_id,
@@ -106,7 +111,8 @@ def queue_event(
             "payload": event.payload,
             "source": event.source
         },
-        priority=event.priority
+        priority=event.priority,
+        tenant_id=str(api_key_obj.tenant_id)
     )
     return {
         "queue_id": str(queue_item.id),
@@ -117,14 +123,13 @@ def queue_event(
 def process_queue(
     batch_size: int = 100,
     db: Session = Depends(get_db),
-    # events:write for now; this is an operational/batch-admin action across the
-    # whole queue (not scoped to one tenant) — worth its own 'system:operate'
-    # permission if this app grows a real ops/admin surface distinct from
-    # per-tenant writes.
-    _auth: APIKey = Depends(require_permission("events", "write")),
+    api_key_obj: APIKey = Depends(require_permission("events", "write")),
 ):
-    """Process queued events (manual trigger)"""
-    count = AsyncEventPipeline.process_queue_batch(db, batch_size)
+    """Process queued events (manual trigger). A non-admin key processes only its own workspace's
+    items; admin keys process every tenant's (including legacy items queued without a tenant)."""
+    batch_size = max(1, min(batch_size, 1000))
+    count = AsyncEventPipeline.process_queue_batch(
+        db, batch_size, tenant_id=None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id))
     return {
         "processed_count": count
     }
@@ -168,15 +173,20 @@ def execute_strategy(
     entity_id: str,
     emit_events: bool = True,
     db: Session = Depends(get_db),
-    _auth: APIKey = Depends(require_permission("strategies", "execute")),
+    api_key_obj: APIKey = Depends(require_permission("strategies", "execute")),
 ):
-    """Execute strategy on entity. Requires an API key with strategies:execute."""
-    execution = StrategyEngine.execute_strategy(
-        db=db,
-        strategy_id=strategy_id,
-        entity_id=entity_id,
-        emit_events=emit_events
-    )
+    """Execute strategy on entity. Requires an API key with strategies:execute. A non-admin key can
+    only run its own workspace's strategies, over its own workspace's events (404 otherwise)."""
+    try:
+        execution = StrategyEngine.execute_strategy(
+            db=db,
+            strategy_id=strategy_id,
+            entity_id=entity_id,
+            emit_events=emit_events,
+            tenant_id=None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id),
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="strategy not found")
     
     return {
         "execution_id": str(execution.id),
@@ -202,6 +212,7 @@ class APIKeyCreate(BaseModel):
     tenant_id: str
     role: str
     name: str
+    expires_in_days: Optional[int] = Field(None, ge=1, le=3650)
 
 @router.post("/security/api-keys")
 def create_api_key(
@@ -224,6 +235,10 @@ def create_api_key(
     if not authorized and x_api_key:
         api_key_obj = SecurityManager.verify_api_key(db, x_api_key)
         if api_key_obj and RBACMiddleware.check_permission(api_key_obj, db, "api_keys", "write"):
+            # A tenant admin mints keys for its own workspace only. Minting for another workspace
+            # (or a platform admin key) takes a platform admin key or the bootstrap key.
+            if str(api_key_obj.tenant_id) != str(request.tenant_id) and not is_platform_admin(api_key_obj, db):
+                raise HTTPException(status_code=403, detail="can only create keys for your own workspace")
             authorized = True
     if not authorized:
         raise HTTPException(status_code=401, detail="requires an API key with api_keys:write, or X-Bootstrap-Key")
@@ -232,19 +247,24 @@ def create_api_key(
         db=db,
         tenant_id=request.tenant_id,
         role_name=request.role,
-        name=request.name
+        name=request.name,
+        expires_at=(datetime.now(timezone.utc) + timedelta(days=request.expires_in_days)) if request.expires_in_days else None,
     )
     
     return {
         "id": str(api_key.id),
         "key": plaintext_key,  # Only returned once!
         "role": request.role,
+        "expires_at": api_key.expires_at,
         "warning": "Store this key securely - it will not be shown again"
     }
 
 @router.get("/security/roles")
-def list_roles(db: Session = Depends(get_db)):
-    """List available RBAC roles"""
+def list_roles(
+    db: Session = Depends(get_db),
+    _auth: APIKey = Depends(require_permission("api_keys", "read")),
+):
+    """List available RBAC roles (admin keys only: this exposes the permission model)"""
     from app.core.models_v3 import Role
     roles = db.query(Role).all()
     return {
@@ -279,3 +299,71 @@ def system_info_v3():
             "scalability": "1M+ entities"
         }
     }
+
+
+# === API key lifecycle (tenant-scoped: a workspace admin manages its own workspace's keys only) ===
+
+def _key_or_404(db: Session, caller: APIKey, key_id: str) -> APIKey:
+    try:
+        kid = _uuid.UUID(key_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="key not found")
+    key = db.query(APIKey).filter(APIKey.id == kid).first()
+    if key is None or (str(key.tenant_id) != str(caller.tenant_id) and not is_platform_admin(caller, db)):
+        raise HTTPException(status_code=404, detail="key not found")
+    return key
+
+
+@router.get("/security/api-keys")
+def list_api_keys(
+    db: Session = Depends(get_db),
+    caller: APIKey = Depends(require_permission("api_keys", "read")),
+):
+    """List the caller's workspace's keys (all workspaces for a platform admin). Never returns key
+    material."""
+    from app.core.models_v3 import Role
+    q = db.query(APIKey, Role.name).join(Role, Role.id == APIKey.role_id)
+    if not is_platform_admin(caller, db):
+        q = q.filter(APIKey.tenant_id == caller.tenant_id)
+    return [
+        {"id": str(k.id), "tenant_id": str(k.tenant_id), "name": k.name, "role": role,
+         "is_active": bool(k.is_active), "created_at": k.created_at, "expires_at": k.expires_at,
+         "last_used_at": k.last_used_at}
+        for k, role in q.order_by(APIKey.created_at.desc()).all()
+    ]
+
+
+@router.post("/security/api-keys/{key_id}/revoke")
+def revoke_api_key(
+    key_id: str,
+    db: Session = Depends(get_db),
+    caller: APIKey = Depends(require_permission("api_keys", "write")),
+):
+    """Revoke a key. Takes effect on the next request; connected WebSockets close at their next
+    re-check (REAUTH_S)."""
+    key = _key_or_404(db, caller, key_id)
+    key.is_active = False
+    db.commit()
+    return {"id": str(key.id), "is_active": False}
+
+
+@router.post("/security/api-keys/{key_id}/rotate")
+def rotate_api_key(
+    key_id: str,
+    db: Session = Depends(get_db),
+    caller: APIKey = Depends(require_permission("api_keys", "write")),
+):
+    """Replace a key: mint a new one with the same workspace, role, name and remaining lifetime, and
+    revoke the old one. The new plaintext key is returned once."""
+    from app.core.models_v3 import Role
+    old = _key_or_404(db, caller, key_id)
+    if not old.is_active:
+        raise HTTPException(status_code=409, detail="key is already revoked")
+    role = db.query(Role).filter(Role.id == old.role_id).first()
+    new, plaintext = SecurityManager.create_api_key(
+        db=db, tenant_id=str(old.tenant_id), role_name=role.name, name=old.name, expires_at=old.expires_at,
+    )
+    old.is_active = False
+    db.commit()
+    return {"id": str(new.id), "key": plaintext, "role": role.name, "replaces": str(old.id),
+            "expires_at": new.expires_at, "warning": "Store this key securely - it will not be shown again"}
