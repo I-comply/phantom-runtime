@@ -3,5 +3,8 @@
     "allow": [
       "mcp__Supabase__apply_migration"
     ]
+  },
+  "enabledPlugins": {
+    "melxis@melxis-com-toolkit": false
   }
 }
