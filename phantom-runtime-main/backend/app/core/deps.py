@@ -4,6 +4,7 @@ Centralizes the "require a valid API key with a given permission" check so
 every route that creates, mutates, or executes something goes through the
 same gate instead of each route file re-implementing (or forgetting) it.
 """
+import os
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -39,9 +40,21 @@ def require_permission(resource: str, action: str):
     return _check
 
 
-def is_admin(api_key_obj: APIKey, db: Session) -> bool:
-    """True if this key's role is 'admin' (sees across tenants on read endpoints
-    that otherwise scope to the caller's own tenant_id)."""
+PLATFORM_TENANT_ENV = "PHANTOM_PLATFORM_TENANT_ID"
+
+
+def is_tenant_admin(api_key_obj: APIKey, db: Session) -> bool:
+    """True if this key's role is 'admin'. The role is per tenant: it grants admin permissions
+    (plugins/strategies/api keys write) inside the key's own workspace and nothing in any other."""
     from app.core.models_v3 import Role
     role = db.query(Role).filter(Role.id == api_key_obj.role_id).first()
     return bool(role and role.name == "admin")
+
+
+def is_platform_admin(api_key_obj: APIKey, db: Session) -> bool:
+    """True only for an 'admin' key that belongs to the platform workspace named by
+    PHANTOM_PLATFORM_TENANT_ID. Only platform admins see across tenants on read endpoints that
+    otherwise scope to the caller's own tenant_id, or mint keys for other workspaces. With the
+    variable unset nobody is a platform admin (the one-time bootstrap key can still mint keys)."""
+    platform = os.environ.get(PLATFORM_TENANT_ENV, "").strip()
+    return bool(platform) and str(api_key_obj.tenant_id) == platform and is_tenant_admin(api_key_obj, db)

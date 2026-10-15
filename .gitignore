@@ -1,6 +1,6 @@
 # Repo-wide safety net. Subprojects with their own build tooling keep their
-# own .gitignore (phantom-runtime-main/, phantom-runtime-main/frontend/,
-# agent-trust-layer/) for anything specific to that stack; this file covers
+# own .gitignore (phantom-runtime-main/, phantom-runtime-main/frontend/)
+# for anything specific to that stack; this file covers
 # patterns that can show up anywhere in the tree.
 
 # Environment / secrets

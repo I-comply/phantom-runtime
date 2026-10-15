@@ -14,7 +14,7 @@ RLIMIT_NPROC actually bind (fork/popen then fails). This does not make exec()
 safe — it bounds how much damage a successful escape can do. Prefer the Docker
 executor (ATL_EXECUTOR-style, network-isolated, read-only rootfs) over this
 plain-subprocess fallback wherever Docker is available; see
-agent-trust-layer/atl/executor.py in this repo for that reference implementation."""
+atl/executor.py in https://github.com/I-comply/Agent-Trust-Layer for that reference implementation."""
 import json
 import os
 import shutil
@@ -53,7 +53,7 @@ WORKER = _world_readable_worker_copy(_SOURCE_WORKER)
 # for environments where nobody is mapped differently.
 SANDBOX_UID = int(os.environ.get("SANDBOX_UID", "65534"))
 SANDBOX_GID = int(os.environ.get("SANDBOX_GID", "65534"))
-# python:3.12-slim, pinned by digest — same base image agent-trust-layer/atl/executor.py
+# python:3.12-slim, pinned by digest — same base image Agent-Trust-Layer's atl/executor.py
 # uses, for the same reason (never pull a mutable tag for a sandbox image).
 DEFAULT_IMAGE = "python@sha256:02108f5d322dd89f1c9e552442c25acb0543dfdbc455693a5599624f20d9155d"
 
@@ -100,8 +100,9 @@ def _run_docker(payload: bytes, timeout: float) -> dict:
     """Docker driver: one throwaway container per call, --network none,
     read-only rootfs with RAM-only (tmpfs) write layers that are shredded
     on exit (see ramdisk_overlay.py; SANDBOX_RAMDISK=0 disables), all caps dropped,
-    unprivileged user — the same pattern as agent-trust-layer/atl/executor.py's
-    DockerExecutor in this repo. Fails closed: any Docker error is a sandbox failure, never a silent fallback to
+    unprivileged user — the same pattern as atl/executor.py's DockerExecutor in
+    https://github.com/I-comply/Agent-Trust-Layer. Fails closed: any Docker error is a
+    sandbox failure, never a silent fallback to
     the plain-subprocess driver."""
     image = os.environ.get("SANDBOX_DOCKER_IMAGE", DEFAULT_IMAGE)
     name = f"phantom-sandbox-{uuid.uuid4().hex[:16]}"

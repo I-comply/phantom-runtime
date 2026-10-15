@@ -4,9 +4,11 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from app.core.database import get_db
 from app.core.defi_manager import DeFiEventManager, AsyncPipeline
-from app.core.deps import require_permission, is_admin
+from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v3 import APIKey
 from datetime import datetime
+
+from app.api.websocket import publish_event
 
 router = APIRouter(prefix="/api/defi", tags=["defi"])
 
@@ -49,6 +51,8 @@ def create_defi_event(
             metadata=event.metadata,
             workspace_id=str(api_key_obj.tenant_id),
         )
+        publish_event({"id": defi_event.core_event_id, "entity_id": defi_event.entity_id,
+                       "event_type": defi_event.event_type, "version": "v1"}, api_key_obj.tenant_id)
         return defi_event
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -61,7 +65,7 @@ def get_portfolio(
 ):
     """Get portfolio summary for an entity, scoped to the caller's own
     workspace (unscoped for admin keys)"""
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     portfolio = DeFiEventManager.get_entity_portfolio(db, entity_id, workspace_id)
     return portfolio
 

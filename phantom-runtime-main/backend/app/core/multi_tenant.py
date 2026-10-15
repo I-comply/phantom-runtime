@@ -5,6 +5,10 @@ import hashlib
 import secrets
 import string
 
+class EntityAlreadyClaimed(Exception):
+    """The entity is already linked to a different workspace."""
+
+
 class MultiTenantManager:
     @staticmethod
     def generate_api_key() -> str:
@@ -42,7 +46,18 @@ class MultiTenantManager:
     
     @staticmethod
     def link_entity_to_workspace(db: Session, workspace_id: str, entity_id: str) -> EntityWorkspace:
-        """Link an entity to a workspace"""
+        """Link an entity to a workspace. First claimant wins (same rule as EventStore.claim_entity):
+        raises EntityAlreadyClaimed if the entity is linked to any other workspace. Without this,
+        any tenant could link another tenant's entity_id to itself and read its events and state."""
+        from app.core.event_store import EventStore
+        EventStore.lock_entity(db, entity_id)  # two simultaneous claimants must not both win
+        owner = db.query(EntityWorkspace).filter(
+            EntityWorkspace.entity_id == entity_id,
+            EntityWorkspace.workspace_id != workspace_id
+        ).first()
+        if owner:
+            db.rollback()
+            raise EntityAlreadyClaimed(entity_id)
         # Check if link already exists
         existing = db.query(EntityWorkspace).filter(
             EntityWorkspace.workspace_id == workspace_id,

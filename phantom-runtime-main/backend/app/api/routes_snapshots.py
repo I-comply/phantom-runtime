@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional
 from app.core.database import get_db
 from app.core.snapshot_manager import SnapshotManager
 from app.core.event_store import EventStore
-from app.core.deps import require_permission, is_admin
+from app.core.deps import require_permission, is_platform_admin
 from app.core.models_v3 import APIKey
 from datetime import datetime
 
@@ -17,7 +17,7 @@ def _check_access(api_key_obj: APIKey, db: Session, entity_id: str):
     (no snapshot yet) reads the v1 Event table directly, which has no tenant
     column of its own — scoping only the snapshot lookup isn't enough to stop
     that fallback from replaying another tenant's event history."""
-    if not is_admin(api_key_obj, db) and not EventStore.entity_in_workspace(
+    if not is_platform_admin(api_key_obj, db) and not EventStore.entity_in_workspace(
         db, entity_id, str(api_key_obj.tenant_id)
     ):
         raise HTTPException(status_code=404, detail="entity not found")
@@ -44,7 +44,10 @@ def create_snapshot(
 ):
     """Manually create a snapshot for an entity, stamped with the caller's own
     workspace (never caller-supplied — a client can no longer claim a snapshot
-    belongs to a workspace it doesn't hold a key for)."""
+    belongs to a workspace it doesn't hold a key for). The entity must belong to the caller's
+    workspace: without that check any key with snapshots:write could snapshot another tenant's
+    entity under its own workspace and then read the snapshot back (a cross-tenant read)."""
+    _check_access(api_key_obj, db, request.entity_id)
     snapshot = SnapshotManager.create_snapshot(
         db=db,
         entity_id=request.entity_id,
@@ -65,7 +68,7 @@ def get_latest_snapshot(
     """Get latest snapshot for an entity, scoped to the caller's own workspace
     (unscoped for admin keys)"""
     _check_access(api_key_obj, db, entity_id)
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     snapshot = SnapshotManager.get_latest_snapshot(db, entity_id, workspace_id)
 
     if not snapshot:
@@ -82,7 +85,7 @@ def get_state_with_snapshot(
     """Get reconstructed state using snapshot optimization, scoped to the
     caller's own workspace (unscoped for admin keys)"""
     _check_access(api_key_obj, db, entity_id)
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     try:
         state = SnapshotManager.reconstruct_with_snapshot(db, entity_id, workspace_id)
         snapshot = SnapshotManager.get_latest_snapshot(db, entity_id, workspace_id)
@@ -106,6 +109,6 @@ def cleanup_old_snapshots(
     """Clean up old snapshots, keeping only N most recent. A non-admin caller
     can only ever delete snapshots belonging to its own workspace."""
     _check_access(api_key_obj, db, entity_id)
-    workspace_id = None if is_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
+    workspace_id = None if is_platform_admin(api_key_obj, db) else str(api_key_obj.tenant_id)
     SnapshotManager.cleanup_old_snapshots(db, entity_id, keep_count, workspace_id)
     return {"status": "cleaned", "entity_id": entity_id, "kept": keep_count}
