@@ -4,8 +4,8 @@
  *
  * Needs a running backend and the one-time bootstrap key (PHANTOM_BOOTSTRAP_ADMIN_KEY):
  *   k6 run -e BASE_URL=http://localhost:8001 -e BOOTSTRAP_KEY=<key> tests/load-tests-k6.js
- * setup() creates one workspace with the bootstrap key; every VU then writes with that
- * workspace's API key. Writes need X-API-Key and workspace creation is closed to anonymous callers.
+ * setup() creates one workspace and an `agent` API key for it with the bootstrap key; every VU
+ * then writes with that key. Writes need X-API-Key and workspace creation is closed to anonymous callers.
  */
 
 import http from 'k6/http';
@@ -21,6 +21,7 @@ let requestCount = new Counter('requests_total');
 
 // Test configuration
 export let options = {
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   stages: [
     { duration: '30s', target: 10 },    // Ramp up to 10 users
     { duration: '1m30s', target: 50 },  // Ramp up to 50 users
@@ -49,7 +50,14 @@ export function setup() {
   if (res.status !== 201) {
     throw new Error('workspace creation failed: ' + res.status + ' ' + res.body);
   }
-  return { apiKey: res.json('api_key') };
+  // The workspace's own pk_ key is not accepted on /api/events: mint an RBAC key for it.
+  const keyRes = http.post(`${baseUrl}/api/v3/security/api-keys`, JSON.stringify({
+    tenant_id: res.json('id'), role: 'agent', name: 'k6-load-test',
+  }), { headers: { 'Content-Type': 'application/json', 'X-Bootstrap-Key': __ENV.BOOTSTRAP_KEY } });
+  if (keyRes.status !== 200) {
+    throw new Error('api key creation failed: ' + keyRes.status + ' ' + keyRes.body);
+  }
+  return { apiKey: keyRes.json('key') };
 }
 
 export default function (data) {
