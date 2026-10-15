@@ -57,7 +57,8 @@ export function setup() {
   if (keyRes.status !== 200) {
     throw new Error('api key creation failed: ' + keyRes.status + ' ' + keyRes.body);
   }
-  return { apiKey: keyRes.json('key') };
+  // Entities are owned by the first workspace that writes them, so ids must be unique per run.
+  return { apiKey: keyRes.json('key'), runId: Date.now().toString(36) };
 }
 
 export default function (data) {
@@ -69,7 +70,7 @@ export default function (data) {
       let startTime = new Date();
       
       let eventRes = http.post(`${baseUrl}/api/events/`, JSON.stringify({
-        entity_id: `entity_${__VU}_${i}`,
+        entity_id: `entity_${data.runId}_${__VU}_${i}`,
         event_type: i === 0 ? 'init' : 'update',
         payload: {
           index: i,
@@ -97,7 +98,7 @@ export default function (data) {
   group('State Reconstruction Load Test', function () {
     let startTime = new Date();
     
-    let stateRes = http.get(`${baseUrl}/api/state/entity_${__VU}_0`, params);
+    let stateRes = http.get(`${baseUrl}/api/state/entity_${data.runId}_${__VU}_0`, params);
     
     let duration = new Date() - startTime;
     stateReconstructionTime.add(duration);
@@ -106,7 +107,7 @@ export default function (data) {
     check(stateRes, {
       'state retrieved': (r) => r.status === 200,
       'reconstruction time < 200ms': (r) => r.timings.duration < 200,
-      'has state data': (r) => r.body.includes('state'),
+      'has state data': (r) => !!r.body && r.body.includes('state'),
     });
     
     apiErrorRate.add(stateRes.status !== 200);
@@ -115,11 +116,11 @@ export default function (data) {
   group('High Concurrency Scenario', function () {
     // Simulate concurrent requests
     let responses = http.batch([
-      ['GET', `${baseUrl}/api/state/entity_${__VU}_0`, null, params],
-      ['GET', `${baseUrl}/api/state/entity_${__VU}_1`, null, params],
-      ['GET', `${baseUrl}/api/state/entity_${__VU}_2`, null, params],
+      ['GET', `${baseUrl}/api/state/entity_${data.runId}_${__VU}_0`, null, params],
+      ['GET', `${baseUrl}/api/state/entity_${data.runId}_${__VU}_1`, null, params],
+      ['GET', `${baseUrl}/api/state/entity_${data.runId}_${__VU}_2`, null, params],
       ['POST', `${baseUrl}/api/events/`, JSON.stringify({
-        entity_id: `entity_${__VU}_concurrent`,
+        entity_id: `entity_${data.runId}_${__VU}_concurrent`,
         event_type: 'update',
         payload: { concurrent: true, vu: __VU }
       }), params],
