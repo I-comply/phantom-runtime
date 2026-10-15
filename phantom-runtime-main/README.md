@@ -282,11 +282,17 @@ also ran k6 and PostgreSQL: **one `uvicorn` worker serves about 190 requests/s w
   `app/core/database.py`). `get_db` admits at most `MAX_CONCURRENT_SESSIONS` (12) request sessions and
   `background_session()` at most `POOL_HEADROOM` (3) websocket sessions; further requests wait for a slot
   without using a thread. Without the cap a burst stalled every request on the pool timeout for minutes.
-  Keep `workers x 15` below PostgreSQL's `max_connections`.
-- **Run one worker per process group; scale with the machine, not `--workers`, for now.** The websocket
-  connection manager (`app/api/websocket.py`) and the reconciler daemon (started in the app lifespan) are
-  per process. With `--workers N`, an event written through one worker is pushed only to the websocket
-  clients connected to that worker, and N reconcilers run. Fix those before raising the worker count.
+  Keep `workers x 17` below PostgreSQL's `max_connections`.
+- **Multiple workers are supported on PostgreSQL.** Events fan out to every worker's websocket clients
+  through PostgreSQL `LISTEN/NOTIFY` (`app/core/event_bus.py`, channel `phantom_events`; each worker holds
+  two extra dedicated connections: included in the `workers x 17` budget above). The reconciler runs only in the worker holding a
+  cluster-wide advisory lock (`app/reconciler/leader.py`); if that worker dies another takes over within
+  about 2 s. Websocket caps (200 total, 10 per key) and the `active_connections` metric are per worker.
+  Events published while a worker's listener is reconnecting are not replayed; clients re-fetch through the
+  normal endpoints. On a non-PostgreSQL database the bus and the lock fall back to in-process behaviour
+  (single worker only).
+- **`GET /api/state/{id}` does not write.** A due snapshot is created after the response, in its own
+  session under the entity lock, and re-checked there so concurrent workers create one.
 - **`last_used_at`** on an API key is written at most once a minute, not on every request.
 
 ## Production Considerations

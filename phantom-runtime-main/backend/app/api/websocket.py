@@ -14,6 +14,8 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.core.event_bus import bus
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -88,7 +90,6 @@ class ConnectionManager:
         self.connections: List[tuple] = []  # (websocket, Principal)
         self.buffers: Dict[str, List[Dict[str, Any]]] = {}  # per tenant
         self.max_buffer_size = 100
-        self.loop = None  # the server's event loop, recorded when a client connects
 
     def count_for(self, principal: Principal) -> int:
         if principal.platform:
@@ -137,7 +138,6 @@ async def websocket_events(websocket: WebSocket):
     principal = await _authenticate(websocket)
     if principal is None or not await manager.connect(websocket, principal):
         return
-    manager.loop = asyncio.get_running_loop()
     verified = time.monotonic()
     try:
         while True:
@@ -234,25 +234,23 @@ async def websocket_metrics(websocket: WebSocket):
         pass
 
 
+def event_message(event_data: Dict[str, Any]) -> Dict[str, Any]:
+    return {"type": "new_event", "timestamp": datetime.utcnow().isoformat(), "data": event_data}
+
+
 async def broadcast_event(event_data: Dict[str, Any], tenant_id: str):
-    """Send an event to the WebSocket clients of one workspace (and platform admins).
-    The tenant is required: there is no global broadcast."""
-    await manager.broadcast({
-        "type": "new_event",
-        "timestamp": datetime.utcnow().isoformat(),
-        "data": event_data
-    }, str(tenant_id))
+    """Send an event to this process's WebSocket clients of one workspace (and platform admins).
+    The tenant is required: there is no global broadcast. Cross-process delivery is publish_event."""
+    await manager.broadcast(event_message(event_data), str(tenant_id))
 
 
 def publish_event(event_data: Dict[str, Any], tenant_id) -> None:
-    """Push a "new_event" to a workspace's clients from synchronous code (the write routes run in a
-    thread pool). Fire-and-forget: it never blocks the write and never raises. Only a summary is sent
-    (ids and type, not the payload); clients fetch the rest through the normal, authorised endpoints.
-    No client has connected yet means no loop and nothing to deliver."""
-    loop = manager.loop
-    if loop is None or loop.is_closed():
-        return
+    """Push a "new_event" to a workspace's clients on every worker, from synchronous code (the write
+    routes run in a thread pool). Goes through app.core.event_bus (PostgreSQL LISTEN/NOTIFY), which
+    delivers to each worker's ConnectionManager. Fire-and-forget: it never blocks the write and never
+    raises. Only a summary is sent (ids and type, not the payload); clients fetch the rest through the
+    normal, authorised endpoints. Before startup completes there is nothing to deliver to."""
     try:
-        asyncio.run_coroutine_threadsafe(broadcast_event(event_data, str(tenant_id)), loop)
+        bus.publish(event_message(event_data), str(tenant_id))
     except Exception as e:  # pragma: no cover - a failed push must not fail the write
         logger.error(f"publish_event failed: {e}")
