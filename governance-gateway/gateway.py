@@ -33,16 +33,16 @@ KEY_STORE: dict[str, bytes] = {}
 
 
 class ReplayCache:
-    """In-process (client_id, signature) seen-set with TTL. Per-instance: multi-replica
-    deployments need a shared store (e.g. Redis SET NX EX) behind the same interface."""
+    """In-process (client_id, signature) seen-set with TTL. Per-instance only;
+    set REDIS_URL for a store shared across replicas."""
 
     def __init__(self, ttl: float = REPLAY_TTL_SECONDS, max_entries: int = REPLAY_MAX_ENTRIES):
         self.ttl = ttl
         self.max_entries = max_entries
         self._seen: dict[tuple[str, str], float] = {}
 
-    def check_and_add(self, client_id: str, signature: str) -> bool:
-        """True if fresh (recorded); False if replay. Synchronous => atomic in the event loop."""
+    async def check_and_add(self, client_id: str, signature: str) -> bool:
+        """True if fresh (recorded); False if replay. No awaits inside => atomic in the event loop."""
         now = time.monotonic()
         if len(self._seen) >= self.max_entries:
             self._seen = {k: t for k, t in self._seen.items() if t > now}
@@ -56,7 +56,32 @@ class ReplayCache:
         return True
 
 
-REPLAY_CACHE = ReplayCache()
+class RedisReplayCache:
+    """Shared replay store: atomic SET NX EX. Fails closed (503) if Redis is unreachable."""
+
+    def __init__(self, client, ttl: int = REPLAY_TTL_SECONDS, prefix: str = "gw:replay:"):
+        self.client = client
+        self.ttl = ttl
+        self.prefix = prefix
+
+    async def check_and_add(self, client_id: str, signature: str) -> bool:
+        try:
+            ok = await self.client.set(f"{self.prefix}{client_id}:{signature}", "1", nx=True, ex=self.ttl)
+        except Exception:
+            raise HTTPException(status_code=503, detail="Replay store unavailable.")
+        return bool(ok)
+
+
+def build_replay_cache():
+    url = os.environ.get("REDIS_URL")
+    if not url:
+        return ReplayCache()
+    import redis.asyncio as aioredis
+
+    return RedisReplayCache(aioredis.from_url(url, socket_timeout=2, socket_connect_timeout=2))
+
+
+REPLAY_CACHE = build_replay_cache()
 
 
 def get_keys() -> dict[str, bytes]:
@@ -86,7 +111,7 @@ async def verify_signature(request: Request) -> str:
     computed = hmac.new(secret, body + timestamp.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(computed, signature):
         raise HTTPException(status_code=401, detail="Signature verification failed.")
-    if not REPLAY_CACHE.check_and_add(client_id, signature):
+    if not await REPLAY_CACHE.check_and_add(client_id, signature):
         raise HTTPException(status_code=409, detail="Replay detected.")
     return client_id
 

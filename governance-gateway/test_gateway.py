@@ -7,9 +7,11 @@ import time
 os.environ["GATEWAY_KEYS"] = json.dumps({"service_node_01": "test-secret"})
 
 import pytest  # noqa: E402
+import fakeredis  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from gateway import REPLAY_CACHE, ReplayCache, app  # noqa: E402
+import gateway  # noqa: E402
+from gateway import REPLAY_CACHE, RedisReplayCache, ReplayCache, app  # noqa: E402
 
 client = TestClient(app)
 
@@ -103,12 +105,35 @@ def test_invalid_signature_not_cached():
 def test_replay_cache_expiry_and_saturation():
     from fastapi import HTTPException
 
-    c = ReplayCache(ttl=0.01, max_entries=2)
-    assert c.check_and_add("a", "s1")
-    assert not c.check_and_add("a", "s1")
-    time.sleep(0.02)
-    assert c.check_and_add("a", "s1")
-    c2 = ReplayCache(ttl=60, max_entries=1)
-    assert c2.check_and_add("a", "s1")
-    with pytest.raises(HTTPException):
-        c2.check_and_add("a", "s2")
+    import asyncio
+
+    async def run():
+        c = ReplayCache(ttl=0.01, max_entries=2)
+        assert await c.check_and_add("a", "s1")
+        assert not await c.check_and_add("a", "s1")
+        await asyncio.sleep(0.02)
+        assert await c.check_and_add("a", "s1")
+        c2 = ReplayCache(ttl=60, max_entries=1)
+        assert await c2.check_and_add("a", "s1")
+        with pytest.raises(HTTPException):
+            await c2.check_and_add("a", "s2")
+
+    asyncio.run(run())
+
+
+def test_redis_replay_cache(monkeypatch):
+    fake = fakeredis.FakeAsyncRedis()
+    monkeypatch.setattr(gateway, "REPLAY_CACHE", RedisReplayCache(fake, ttl=60))
+    body = _body()
+    ts = str(int(time.time()))
+    assert _post(body, ts=ts).status_code == 200
+    assert _post(body, ts=ts).status_code == 409
+
+
+def test_redis_down_fails_closed(monkeypatch):
+    class Broken:
+        async def set(self, *a, **k):
+            raise ConnectionError("down")
+
+    monkeypatch.setattr(gateway, "REPLAY_CACHE", RedisReplayCache(Broken()))
+    assert _post(_body()).status_code == 503
