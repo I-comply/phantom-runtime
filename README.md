@@ -11,6 +11,7 @@ Monorepo for the Phantom runtime: a deterministic, event-sourced runtime (state 
 | `replaycheck/` | Python (stdlib only) tool that checks `state == fold(events)` for an event-sourced system; includes an adapter for the PhantomOS reconstructor. |
 | `temporal-kernel/` | Python (stdlib only) workflow orchestration node over an append-only, hash-chained SQLite event log. |
 | `supabase/` | SQL migrations, seeds, rollout scripts and security tests for the Supabase/PostgreSQL schema (events, workspaces, API keys, RLS). |
+| `ctal/` | CTAL (Continuous Trust and Assurance Ledger) P0: AQPD/CLES contracts, signed assurance envelope, tenant-scoped hash-chained ledger, signed export and offline verifier. Python + `cryptography`. See `docs/ctal/README.md`. |
 | `observability/` | `observability.py`: Prometheus metrics, tracing and structured logging module. |
 | `docs/` | Earlier reports and guides (execution, testing, Supabase). See `docs/README.md`. |
 | `tests/` | `test_suite.py` (see its header note on scope) and `load-tests-k6.js` (k6 load scenarios). |
