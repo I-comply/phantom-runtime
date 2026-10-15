@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pain2Asset Forge Control Center</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #1e293b; padding: 24px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        h1 { font-size: 24px; margin-bottom: 4px; color: #38bdf8; }
+        p.subtitle { color: #94a3b8; margin-top: 0; margin-bottom: 20px; }
+        #chat-box { height: 400px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; overflow-y: auto; margin-bottom: 16px; font-family: monospace; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+        .message { margin-bottom: 12px; }
+        .message span.sender { font-weight: bold; color: #38bdf8; }
+        .input-group { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px; font-size: 14px; }
+        button { padding: 12px 24px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #0369a1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pain2Asset Forge</h1>
+        <p class="subtitle">Live Scraper &amp; Real-Time LLM Solution Gateway</p>
+        <div id="chat-box"></div>
+        <div class="input-group">
+            <input type="text" id="messageInput" placeholder="Enter solution prompt or asset request..." autocomplete="off">
+            <button id="sendBtn">Send</button>
+        </div>
+    </div>
+    <script>
+        const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const ws = new WebSocket(`${proto}://${window.location.host}/ws/chat`);
+        const chatBox = document.getElementById('chat-box');
+        const input = document.getElementById('messageInput');
+
+        function addMessage(sender, text) {
+            const div = document.createElement('div');
+            div.className = 'message';
+            const s = document.createElement('span');
+            s.className = 'sender';
+            s.textContent = sender + ': ';
+            div.appendChild(s);
+            div.appendChild(document.createTextNode(text));
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            addMessage(data.sender, data.message);
+        };
+        ws.onclose = () => addMessage('System', 'Connection closed.');
+
+        function sendMessage() {
+            const text = input.value.trim();
+            if (!text || ws.readyState !== WebSocket.OPEN) return;
+            addMessage('You', text);
+            ws.send(text);
+            input.value = '';
+        }
+
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    </script>
+</body>
+</html>
