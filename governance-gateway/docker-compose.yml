@@ -5,8 +5,23 @@ services:
       dockerfile: Dockerfile.gateway
     ports: ["8000:8000"]
     environment:
+      REDIS_URL: redis://redis:6379/0
       GATEWAY_KEYS: ${GATEWAY_KEYS:?set GATEWAY_KEYS as JSON {"client_id":"secret"}}
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
