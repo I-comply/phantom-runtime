@@ -69,5 +69,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
-      - run: npm install
+      # No package-lock.json (yarn.lock is out of sync with package.json), so npm re-resolves every run.
+      # npm 10.8.2 (Node 20) crashes in its peer-dependency resolver on the current registry state
+      # ("Cannot read properties of null (reading 'edgesOut')"); skipping peer resolution avoids it.
+      - run: npm install --legacy-peer-deps
       - run: npm run build
