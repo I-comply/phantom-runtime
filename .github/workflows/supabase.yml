@@ -1,9 +1,9 @@
 name: supabase
 on:
   push:
-    paths: ["supabase/**", ".github/workflows/supabase.yml"]
+    paths: ["supabase/**", "tests/test_migration_validator.py", ".github/workflows/supabase.yml"]
   pull_request:
-    paths: ["supabase/**", ".github/workflows/supabase.yml"]
+    paths: ["supabase/**", "tests/test_migration_validator.py", ".github/workflows/supabase.yml"]
 permissions:
   contents: read
 jobs:
@@ -28,3 +28,4 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - run: supabase/tests/run.sh
+      - run: python3 -m unittest tests.test_migration_validator -v
