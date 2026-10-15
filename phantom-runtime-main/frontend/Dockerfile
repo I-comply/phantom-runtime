@@ -3,7 +3,10 @@ FROM node:20-alpine as builder
 WORKDIR /app
 
 COPY package.json package-lock.json* yarn.lock* ./
-RUN npm install
+# No consistent lockfile (yarn.lock is out of sync with package.json), so npm re-resolves on every build.
+# npm 10.8.2 (node:20) crashes in its peer-dependency resolver on the current registry state
+# ("Cannot read properties of null (reading 'edgesOut')"); skip peer resolution, as the CI job does.
+RUN npm install --legacy-peer-deps
 
 COPY . .
 RUN npm run build
