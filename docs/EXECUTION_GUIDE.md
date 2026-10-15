@@ -30,7 +30,7 @@ docker ps | grep phantom
 
 # Access dashboards
 echo "Prometheus: http://localhost:9090"
-echo "Grafana: http://localhost:3000 (admin/phantom_admin)"
+echo "Grafana: http://localhost:3000 (admin / $GRAFANA_ADMIN_PASSWORD)"
 echo "Jaeger: http://localhost:16686"
 echo "Loki: http://localhost:3100"
 ```

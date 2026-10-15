@@ -1,0 +1,14 @@
+scan:
+  require-suppress-reason: true
+  secrets:
+    # Placeholders / localhost dev defaults in docs, examples, CI service containers,
+    # config defaults and test fixtures. No production credentials.
+    allow-paths:
+      - "docs/**"
+      - "**/README.md"
+      - "icomply/.env.example"
+      - "icomply/tests/**"
+      - "ctal/tests/**"
+      - "supabase/config.json"
+      - ".github/workflows/*.yml"
+      - "phantom-runtime-main/backend/app/core/config.py"
