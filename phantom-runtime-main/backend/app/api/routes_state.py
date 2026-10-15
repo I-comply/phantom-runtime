@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -42,6 +42,7 @@ def _check_access(api_key_obj: APIKey, db: Session, entity_id: str):
 @router.get("/{entity_id}", response_model=StateResponse)
 def get_entity_state(
     entity_id: str,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     api_key_obj: APIKey = Depends(require_permission("events", "read")),
 ):
@@ -67,9 +68,9 @@ def get_entity_state(
 
     event_count = len(events)
 
-    # Auto-create snapshot if threshold reached
-    if SnapshotManager.should_create_snapshot(db, entity_id):
-        SnapshotManager.create_snapshot(db, entity_id, workspace_id=str(api_key_obj.tenant_id))
+    # A read must not write: the snapshot (when the threshold is reached) is created after the
+    # response, in its own session, under the entity lock.
+    background.add_task(SnapshotManager.snapshot_if_due, entity_id, str(api_key_obj.tenant_id))
 
     return StateResponse(
         entity_id=entity_id,

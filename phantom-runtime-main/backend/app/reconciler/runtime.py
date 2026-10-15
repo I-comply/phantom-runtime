@@ -9,8 +9,8 @@ log = logging.getLogger("phantom.reconciler")
 
 
 def build_reconciler(enabled: bool, node_id: Optional[str], interval: float,
-                     peers: Optional[List[Peer]] = None) -> Optional[ReconcilerDaemon]:
-    """Return a started daemon, or None when disabled. Peers come from a transport (not part of this module)."""
+                     peers: Optional[List[Peer]] = None, start: bool = True) -> Optional[ReconcilerDaemon]:
+    """Return a started daemon (unstarted with start=False, to validate the config), or None when disabled. Peers come from a transport (not part of this module)."""
     if not enabled:
         return None
     if not node_id:
@@ -18,6 +18,8 @@ def build_reconciler(enabled: bool, node_id: Optional[str], interval: float,
     if interval <= 0:
         raise RuntimeError("RECONCILER_INTERVAL must be positive")
     daemon = ReconcilerDaemon(Replica(node_id, key_policy=cluster_key_policy), peers or [], interval=interval)
+    if not start:
+        return daemon
     daemon.start()
     log.info("reconciler started: node=%s peers=%d", node_id, len(daemon.peers))
     return daemon

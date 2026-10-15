@@ -35,12 +35,17 @@ class SnapshotManager:
         return events_since >= SnapshotManager.SNAPSHOT_INTERVAL
     
     @staticmethod
-    def create_snapshot(db: Session, entity_id: str, workspace_id: Optional[str] = None) -> Optional[Snapshot]:
-        """Create a new snapshot for an entity"""
+    def create_snapshot(db: Session, entity_id: str, workspace_id: Optional[str] = None,
+                        only_if_due: bool = False) -> Optional[Snapshot]:
+        """Create a new snapshot for an entity. With only_if_due, re-check the threshold once the entity
+        lock is held and do nothing if a concurrent caller (another request or worker) already did it."""
         try:
             # Wait for in-flight writers of this entity and block new ones until we commit, so the
             # head we snapshot is final (see EventStore.lock_entity).
             EventStore.lock_entity(db, entity_id)
+            if only_if_due and not SnapshotManager.should_create_snapshot(db, entity_id):
+                db.rollback()
+                return None
             # Get all events for reconstruction, in id order (the same order and boundary
             # reconstruct_with_snapshot uses via last_event_id)
             events = db.query(Event).filter(
@@ -84,6 +89,18 @@ class SnapshotManager:
             db.rollback()
             return None
     
+    @staticmethod
+    def snapshot_if_due(entity_id: str, workspace_id: Optional[str] = None) -> None:
+        """Out-of-request entry point (own session): create a snapshot if the threshold is reached.
+        Safe to run concurrently from any number of workers; never raises."""
+        from app.core.database import background_session
+        try:
+            with background_session() as db:
+                if SnapshotManager.should_create_snapshot(db, entity_id):
+                    SnapshotManager.create_snapshot(db, entity_id, workspace_id, only_if_due=True)
+        except Exception as e:
+            logger.error(f"Background snapshot failed for {entity_id}: {e}")
+
     @staticmethod
     def get_latest_snapshot(db: Session, entity_id: str, workspace_id: Optional[str] = None) -> Optional[Snapshot]:
         """Get the most recent snapshot for an entity. workspace_id=None means

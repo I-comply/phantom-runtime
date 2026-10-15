@@ -9,9 +9,12 @@ from app.api import routes_workspaces, routes_snapshots, routes_plugins, routes_
 from app.api import routes_v3
 from app.api import websocket
 from app.core.security import SecurityManager
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from app.reconciler.runtime import build_reconciler
+from app.reconciler.leader import LeaderElector
+from app.core.event_bus import bus
 
 # Initialize database (creates all tables including v3)
 init_db()
@@ -25,13 +28,30 @@ finally:
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    app.state.reconciler = build_reconciler(
-        settings.RECONCILER_ENABLED, settings.RECONCILER_NODE_ID, settings.RECONCILER_INTERVAL)
+    # Multi-worker safety: events fan out to every worker's websocket clients through the shared
+    # bus, and the reconciler runs only in the worker holding the cluster-wide leader lock.
+    bus.start(asyncio.get_running_loop(), websocket.manager.broadcast)
+    app.state.reconciler = None
+    elector = None
+    if settings.RECONCILER_ENABLED:
+        def _acquire():
+            app.state.reconciler = build_reconciler(
+                settings.RECONCILER_ENABLED, settings.RECONCILER_NODE_ID, settings.RECONCILER_INTERVAL)
+
+        def _lose():
+            r, app.state.reconciler = app.state.reconciler, None
+            if r is not None:
+                r.stop()
+
+        build_reconciler(True, settings.RECONCILER_NODE_ID, settings.RECONCILER_INTERVAL, start=False)  # validate config
+        elector = LeaderElector(settings.DATABASE_URL, _acquire, _lose)
+        elector.start()
     try:
         yield
     finally:
-        if app.state.reconciler is not None:
-            app.state.reconciler.stop()
+        if elector is not None:
+            elector.stop()
+        bus.stop()
 
 
 app = FastAPI(
