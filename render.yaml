@@ -1,0 +1,51 @@
+# Render Blueprint for Phantom: Postgres + backend (Docker) + frontend (static site).
+# Deploy: Render dashboard > New > Blueprint > pick this repo. See DEPLOY.md.
+databases:
+  - name: phantom-db
+    databaseName: phantomos
+    plan: basic-256mb
+    region: oregon
+
+services:
+  - type: web
+    name: phantom-backend
+    runtime: docker
+    region: oregon
+    plan: starter
+    rootDir: phantom-runtime-main/backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: phantom-db
+          property: connectionString
+      # Random secret Render generates. Read it in the dashboard (Environment tab) and use it
+      # as the X-Bootstrap-Key header to mint the first admin API key, then delete the variable.
+      - key: PHANTOM_BOOTSTRAP_ADMIN_KEY
+        generateValue: true
+      # The frontend's address, e.g. https://phantom-frontend.onrender.com (no trailing slash).
+      # Fill in after the first deploy; the backend rejects browser calls from any other origin.
+      - key: CORS_ORIGINS
+        sync: false
+      # Optional: id of the workspace whose admin keys may see across workspaces.
+      - key: PHANTOM_PLATFORM_TENANT_ID
+        sync: false
+      - key: SANDBOX_EXECUTOR
+        value: subprocess
+
+  - type: web
+    name: phantom-frontend
+    runtime: static
+    rootDir: phantom-runtime-main/frontend
+    buildCommand: yarn install --frozen-lockfile && yarn build
+    staticPublishPath: dist
+    envVars:
+      # The backend's address, e.g. https://phantom-backend.onrender.com (no trailing slash).
+      # Needed at build time: set it, then redeploy the frontend.
+      - key: VITE_BACKEND_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
