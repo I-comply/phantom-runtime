@@ -1,5 +1,7 @@
 import asyncio
+import threading
 import weakref
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -9,7 +11,7 @@ from app.core.config import settings
 # A request session holds at most one pooled connection at a time. Capping concurrent request sessions
 # below the pool's capacity means a request can always get a connection, so a worker thread never blocks
 # waiting for one while the requests holding connections wait for a thread (see get_db). The headroom is
-# for sessions opened outside requests (websocket handlers, startup).
+# for sessions opened outside requests (background_session).
 POOL_SIZE = 5
 MAX_OVERFLOW = 10
 POOL_HEADROOM = 3
@@ -28,6 +30,23 @@ def _slots() -> asyncio.Semaphore:
     if sem is None:
         sem = _session_slots[loop] = asyncio.Semaphore(MAX_CONCURRENT_SESSIONS)
     return sem
+
+
+_background_slots = threading.BoundedSemaphore(POOL_HEADROOM)
+
+
+@contextmanager
+def background_session():
+    """Session for code that runs outside a request (websocket auth and metrics, which run in worker
+    threads), capped at POOL_HEADROOM at once. Together with the request cap this keeps the total at or
+    below the pool's capacity, so checkout never blocks. Open it, use it, close it within one thread call;
+    never hold it across an await."""
+    with _background_slots:
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
 
 async def get_db():

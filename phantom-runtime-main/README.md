@@ -272,6 +272,23 @@ CREATE INDEX idx_entity_created ON events(entity_id, created_at);
 - Stateless compute (no memory overhead)
 - Free-tier compatible (Supabase PostgreSQL, Railway, Vercel)
 
+## Capacity and scaling
+
+Measured with `tests/load-tests-k6.js` (200 closed-loop virtual users at peak) on one 4-core machine that
+also ran k6 and PostgreSQL: **one `uvicorn` worker serves about 190 requests/s with no errors**, p95 about
+1.7 s at that load (the script's p95 < 500 ms thresholds need more capacity than one worker on that machine).
+
+- **Database connections.** Each process has a pool of 15 (`POOL_SIZE` 5 + `MAX_OVERFLOW` 10, in
+  `app/core/database.py`). `get_db` admits at most `MAX_CONCURRENT_SESSIONS` (12) request sessions and
+  `background_session()` at most `POOL_HEADROOM` (3) websocket sessions; further requests wait for a slot
+  without using a thread. Without the cap a burst stalled every request on the pool timeout for minutes.
+  Keep `workers x 15` below PostgreSQL's `max_connections`.
+- **Run one worker per process group; scale with the machine, not `--workers`, for now.** The websocket
+  connection manager (`app/api/websocket.py`) and the reconciler daemon (started in the app lifespan) are
+  per process. With `--workers N`, an event written through one worker is pushed only to the websocket
+  clients connected to that worker, and N reconcilers run. Fix those before raising the worker count.
+- **`last_used_at`** on an API key is written at most once a minute, not on every request.
+
 ## Production Considerations
 
 1. **Event Retention**: Implement archival for old events

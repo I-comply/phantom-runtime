@@ -4,7 +4,7 @@ from typing import Optional
 import hashlib
 import secrets
 import hmac
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,20 @@ def key_expired(api_key) -> bool:
     if exp.tzinfo is None:
         exp = exp.replace(tzinfo=timezone.utc)
     return exp < datetime.now(timezone.utc)
+
+
+LAST_USED_RESOLUTION = timedelta(seconds=60)
+
+
+def _last_used_is_stale(last_used_at: Optional[datetime]) -> bool:
+    """True when last_used_at should be rewritten: never set, older than LAST_USED_RESOLUTION, or in the
+    future (a naive column read back in a non-UTC session time zone), so a skewed value self-heals."""
+    if last_used_at is None:
+        return True
+    if last_used_at.tzinfo is None:
+        last_used_at = last_used_at.replace(tzinfo=timezone.utc)
+    age = datetime.now(timezone.utc) - last_used_at
+    return not (timedelta(0) <= age < LAST_USED_RESOLUTION)
 
 
 class SecurityManager:
@@ -83,10 +97,13 @@ class SecurityManager:
         if key_expired(api_key):
             return None
         
-        # Update last used
-        api_key.last_used_at = datetime.now(timezone.utc)
-        db.commit()
-        
+        # Update last used, at most once per LAST_USED_RESOLUTION. Writing it on every request made each
+        # authenticated request an UPDATE plus a commit on a row shared by every request on that key,
+        # and the commit expired the key, costing two more SELECTs to reload it.
+        if _last_used_is_stale(api_key.last_used_at):
+            api_key.last_used_at = datetime.now(timezone.utc)
+            db.commit()
+
         return api_key
     
     @staticmethod
