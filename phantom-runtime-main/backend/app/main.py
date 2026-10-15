@@ -10,6 +10,8 @@ from app.api import routes_v3
 from app.api import websocket
 from app.core.security import SecurityManager
 import logging
+from contextlib import asynccontextmanager
+from app.reconciler.runtime import build_reconciler
 
 # Initialize database (creates all tables including v3)
 init_db()
@@ -21,7 +23,19 @@ try:
 finally:
     db.close()
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    app.state.reconciler = build_reconciler(
+        settings.RECONCILER_ENABLED, settings.RECONCILER_NODE_ID, settings.RECONCILER_INTERVAL)
+    try:
+        yield
+    finally:
+        if app.state.reconciler is not None:
+            app.state.reconciler.stop()
+
+
 app = FastAPI(
+    lifespan=_lifespan,
     title="Phantom Finance - Next-Gen Event Runtime",
     version="3.0.0",
     description="Premium event-sourcing platform with hash-chained events, async pipeline, and strategy execution"

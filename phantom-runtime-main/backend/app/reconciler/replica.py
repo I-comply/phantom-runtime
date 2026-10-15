@@ -19,6 +19,8 @@ class Limits:
     max_counter: int = 2 ** 53          # any counter or clock value
     max_clock_jump: int = 10 ** 9       # remote clock value minus local value for the same node
     max_lww_future_skew_ms: int = 5 * 60 * 1000  # LWW ts is unix milliseconds
+    max_key_len: int = 200
+    max_lww_value_len: int = 1024
     now_ms: Callable[[], int] = field(default=lambda: int(time.time() * 1000), compare=False)
 
 
@@ -45,7 +47,10 @@ def _tags(v: Any, lim: Limits, what: str) -> None:
             raise ValueError(f"{what}: malformed element")
 
 
-def validate_snapshot(snap: Any, lim: Limits, local_clock: VectorClock) -> None:
+KeyPolicy = Callable[[str], bool]
+
+
+def validate_snapshot(snap: Any, lim: Limits, local_clock: VectorClock, key_ok: KeyPolicy = None) -> None:
     if not isinstance(snap, dict) or not isinstance(snap.get("objects"), dict) \
             or not isinstance(snap.get("clock"), dict):
         raise ValueError("malformed snapshot")
@@ -69,8 +74,10 @@ def validate_snapshot(snap: Any, lim: Limits, local_clock: VectorClock) -> None:
             raise ValueError(f"clock jump too large for node {node!r}")
     ceiling = lim.now_ms() + lim.max_lww_future_skew_ms
     for key, o in snap["objects"].items():
-        if not isinstance(key, str) or not isinstance(o, dict):
+        if not isinstance(key, str) or not isinstance(o, dict) or len(key) > lim.max_key_len:
             raise ValueError("malformed object")
+        if key_ok is not None and not key_ok(key):
+            raise ValueError(f"key not replicable: {key!r}")
         t = o.get("type")
         if t == "gcounter":
             _counts(o.get("counts"), lim, key)
@@ -87,6 +94,10 @@ def validate_snapshot(snap: Any, lim: Limits, local_clock: VectorClock) -> None:
                 raise ValueError(f"{key}: LWW timestamp too far in the future")
             if not isinstance(o.get("node"), str):
                 raise ValueError(f"{key}: malformed lww")
+            v = o.get("value")
+            if not (v is None or isinstance(v, (bool, int, float))
+                    or (isinstance(v, str) and len(v) <= lim.max_lww_value_len)):
+                raise ValueError(f"{key}: LWW value must be a short scalar")
         elif t == "orset":
             _tags(o.get("adds"), lim, key)
             _tags(o.get("removes"), lim, key)
@@ -97,8 +108,9 @@ def validate_snapshot(snap: Any, lim: Limits, local_clock: VectorClock) -> None:
 class Replica:
     """A node's CRDT state plus the vector clock of updates it has seen. Thread-safe."""
 
-    def __init__(self, node_id: str, limits: Limits = None):
+    def __init__(self, node_id: str, limits: Limits = None, key_policy: KeyPolicy = None):
         self.node_id = node_id
+        self.key_policy = key_policy
         self.limits = limits or Limits()
         self._lock = threading.RLock()
         self._objs: Dict[str, Any] = {}
@@ -106,6 +118,8 @@ class Replica:
 
     def mutate(self, key: str, factory, fn) -> None:
         """Apply fn(crdt) to the object at key (created by factory if absent) and tick the clock."""
+        if self.key_policy is not None and not self.key_policy(key):
+            raise ValueError(f"key not replicable: {key!r}")
         with self._lock:
             obj = self._objs.get(key) or factory()
             fn(obj)
@@ -136,7 +150,7 @@ class Replica:
         Raises ValueError on any limit violation, malformed input or type conflict; local state is untouched.
         """
         with self._lock:
-            validate_snapshot(snap, self.limits, self._clock)
+            validate_snapshot(snap, self.limits, self._clock, self.key_policy)
             try:
                 remote = {k: crdt_from_dict(v) for k, v in snap["objects"].items()}
             except (KeyError, TypeError) as e:

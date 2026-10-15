@@ -199,3 +199,49 @@ def test_malformed_snapshot_does_not_abort_cycle():
     ev = ReconcilerDaemon(a, [bad, Link(c)]).tick()
     assert [e.merged for e in ev] == [False, True]
     assert a.get("c").value == 1
+
+
+# --- replication policy and app wiring ---
+
+def test_key_policy_allows_only_cluster_namespace():
+    from app.reconciler.policy import cluster_key_policy as ok
+    assert ok("cluster/epoch") and ok("cluster/heartbeat/node-1")
+    for bad in ("events/1", "workspaces/abc/state", "cluster/", "cluster/Up", "cluster/a/b/c/d",
+                "cluster/../x", "api_keys", "", "cluster/" + "a" * 65):
+        assert not ok(bad), bad
+
+
+def test_replica_enforces_key_policy_both_ways():
+    from app.reconciler.policy import cluster_key_policy
+    a = Replica("a", key_policy=cluster_key_policy)
+    with pytest.raises(ValueError):
+        a.mutate("tenant/1", GCounter, lambda c: c.increment("a"))
+    with pytest.raises(ValueError):
+        a.merge_snapshot(snap_with(**{"tenant/1": GCounter({"x": 1}).to_dict()}))
+    assert a.merge_snapshot(snap_with(**{"cluster/ok": GCounter({"x": 1}).to_dict()}))
+
+
+def test_lww_values_must_be_short_scalars():
+    r = Replica("a")
+    for bad in ({"tenant": "acme"}, ["x"], "x" * 2000):
+        with pytest.raises(ValueError):
+            r.merge_snapshot(snap_with(v=LWWRegister(bad, 1, "x").to_dict()))
+    assert r.merge_snapshot(snap_with(v=LWWRegister("fine", 1, "x").to_dict()))
+
+
+def test_build_reconciler_flag_and_validation():
+    from app.reconciler.runtime import build_reconciler
+    assert build_reconciler(False, None, 5) is None
+    with pytest.raises(RuntimeError):
+        build_reconciler(True, None, 5)
+    with pytest.raises(RuntimeError):
+        build_reconciler(True, "n1", 0)
+    d = build_reconciler(True, "n1", 0.01)
+    try:
+        assert d.peers == [] and d._thread.is_alive()
+    finally:
+        d.stop()
+
+
+def test_app_lifespan_default_off(client):
+    assert client.app.state.reconciler is None
