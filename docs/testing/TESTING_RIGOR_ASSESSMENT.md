@@ -326,6 +326,17 @@ assert final_state_1 == final_state_2  # Identical
 - Event ordering: 100% preserved
 - Snapshot accuracy: 100%
 
+> **Status note.** The procedure above is a plan, and the "100%" figures were targets, not
+> measurements: the original snapshot tests in `tests/test_suite.py` run against that file's own
+> copies of `StateReconstructor` and `SnapshotManager`, not the production classes. Until the
+> reconstructor fix (one reconstructor, id-ordered replay, entity lock around snapshot creation)
+> snapshot + incremental replay in production raised `AttributeError`.
+> The checks that actually exercise production code are in
+> `phantom-runtime-main/backend/tests/test_replay_equivalence.py` (snapshot + incremental equals
+> full replay for every event type, id ordering, and the snapshot vs concurrent-writer race) and
+> `test_v3_chain_concurrency.py` (no forked v3 chains). Run `python -m app.scripts.rebuild_snapshots`
+> once after deploying to rebuild snapshots written by the old reconstructor.
+
 ---
 
 ### Level 10: Observability Testing

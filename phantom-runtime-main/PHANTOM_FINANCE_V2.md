@@ -49,7 +49,8 @@ curl /api/state/user_001
 
 ```bash
 # Create workspace
-curl -X POST /api/workspaces/ -d '{"name": "Acme Corp"}'
+curl -X POST /api/workspaces/ -H "X-Bootstrap-Key: $PHANTOM_BOOTSTRAP_ADMIN_KEY" \
+  -H "Content-Type: application/json" -d '{"name": "Acme Corp"}'
 # Returns: {"id": "...", "api_key": "pk_..."}
 
 # Use workspace
@@ -140,7 +141,7 @@ curl /api/defi/portfolio/wallet_001
 - `POST /api/snapshots/entity/{id}/cleanup` - Clean old snapshots
 
 ### Workspaces (v2)
-- `POST /api/workspaces/` - Create workspace
+- `POST /api/workspaces/` - Create workspace (needs `X-Bootstrap-Key` or a platform admin `X-API-Key`)
 - `GET /api/workspaces/me` - Get current workspace (via API key)
 - `POST /api/workspaces/me/entities` - Link entity to workspace
 - `GET /api/workspaces/me/entities` - List workspace entities

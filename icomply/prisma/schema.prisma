@@ -1,0 +1,69 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model MonitoredSite {
+  id                  String      @id @default(uuid())
+  name                String
+  url                 String      @unique
+  selector            String
+  lastHash            String?
+  lastText            String?
+  lastChecked         DateTime?
+  lastError           String?
+  consecutiveFailures Int         @default(0)
+  intervalMinutes     Int         @default(360)
+  status              String      @default("ACTIVE") // ACTIVE | PAUSED | ERROR
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  changeLogs          ChangeLog[]
+
+  @@index([status])
+}
+
+model ChangeLog {
+  id              String            @id @default(uuid())
+  monitoredSiteId String
+  site            MonitoredSite     @relation(fields: [monitoredSiteId], references: [id], onDelete: Cascade)
+  oldHash         String?
+  newHash         String
+  diffSummary     String?
+  isBaseline      Boolean           @default(false)
+  addedText       String?
+  removedText     String?
+  detectedAt      DateTime          @default(now())
+  deliveries      WebhookDelivery[]
+
+  @@index([monitoredSiteId, detectedAt])
+}
+
+model WebhookEndpoint {
+  id         String            @id @default(uuid())
+  url        String            @unique
+  secret     String
+  active     Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  deliveries WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id          String          @id @default(uuid())
+  endpointId  String
+  endpoint    WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event       String          @default("change") // change | site_error
+  changeLogId String?
+  changeLog   ChangeLog?      @relation(fields: [changeLogId], references: [id], onDelete: Cascade)
+  success     Boolean
+  httpStatus  Int?
+  attempts    Int
+  error       String?
+  createdAt   DateTime        @default(now())
+
+  @@index([changeLogId])
+  @@index([endpointId, createdAt])
+}

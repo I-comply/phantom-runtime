@@ -6,4 +6,4 @@ Reports and guides from earlier work, moved here from the repo root (no content 
 - `testing/` — `TESTING_REPORT.md`, `TESTING_RIGOR_ASSESSMENT.md`, `TESTING_MONITORING_INDEX.md`
 - `supabase/` — `SUPABASE_DEMO_GUIDE.md`, `SUPABASE_DEMO_INDEX.md`, `SUPABASE_INTEGRATION_GUIDE.md`
 
-`agent-trust-layer/reports/` (ATL's own test reports) stays where it is — it's part of that project, not general repo docs.
+ATL's own reports live with it in https://github.com/I-comply/Agent-Trust-Layer (`reports/`).

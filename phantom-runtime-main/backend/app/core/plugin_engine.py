@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 import logging
 import json
+from app.core.code_guard import validate_user_code
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,10 @@ class PluginEngine:
     
     @staticmethod
     def _execute_code(code: str, state: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute plugin code in an isolated subprocess (see core/sandbox.py)."""
+        """Execute plugin code in an isolated subprocess (see core/sandbox.py). The AST guard runs first
+        as a second layer: it rejects imports, private/dunder access and dangerous builtins before the
+        code ever reaches the sandbox."""
+        validate_user_code(code)
         out = run_sandboxed(code, {'state': state.copy(), 'config': config})
         if not out["ok"]:
             raise ValueError(out["error"])
