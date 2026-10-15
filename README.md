@@ -67,3 +67,9 @@ See `DEPLOY.md` (Render, using `render.yaml`).
 ## License
 
 Proprietary. All rights reserved; see `LICENSE`.
+
+
+---
+
+© 2026 Daniel Ron Stevens. All Rights Reserved.
+PhantomWorks™️
