@@ -1,0 +1,280 @@
+rules:
+  - id: phantom.python.dangerous-eval
+    message: "`$F` on a non-literal executes arbitrary code. Parse with ast.literal_eval or a dedicated parser instead."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-95: Eval Injection"], owasp: ["A03:2021 - Injection"], confidence: HIGH}
+    patterns:
+      - pattern-either:
+          - pattern: eval($X)
+          - pattern: exec($X)
+      - pattern-not: eval("...")
+      - pattern-not: exec("...")
+    fix-regex:
+      regex: ^eval\(
+      replacement: ast.literal_eval(
+
+  - id: phantom.python.subprocess-shell-true
+    message: "subprocess call with shell=True and a non-literal command is vulnerable to shell injection. Pass an argument list and drop shell=True."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-78: OS Command Injection"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.$F($CMD, ..., shell=True, ...)
+          - pattern: subprocess.$F(..., args=$CMD, ..., shell=True, ...)
+      - pattern-not: subprocess.$F("...", ..., shell=True, ...)
+
+  - id: phantom.python.os-system-nonliteral
+    message: "`$F` runs its argument through a shell. A non-literal command allows command injection; use subprocess with an argument list."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-78: OS Command Injection"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: os.system($X)
+          - pattern: os.popen($X)
+          - pattern: commands.getoutput($X)
+      - pattern-not: os.system("...")
+      - pattern-not: os.popen("...")
+
+  - id: phantom.python.sql-string-building
+    message: "SQL built with string concatenation/formatting is injectable. Use parameterized queries: cursor.execute(sql, params)."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-89: SQL Injection"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    pattern-either:
+      - pattern: $C.execute("..." + $X, ...)
+      - pattern: $C.execute($X + "...", ...)
+      - pattern: $C.execute("..." % $X, ...)
+      - pattern: $C.execute("...".format(...), ...)
+      - pattern: $C.execute(f"...{$X}...", ...)
+      - pattern: $C.executemany("..." + $X, ...)
+      - pattern: $C.executemany(f"...{$X}...", ...)
+      - pattern: $C.executescript(f"...{$X}...")
+      - pattern: $M.objects.raw(f"...{$X}...")
+      - pattern: $M.objects.raw("..." % $X)
+      - pattern: $M.objects.extra(where=[f"...{$X}..."])
+
+  - id: phantom.python.taint-sql-injection
+    message: "User-controlled data flows into a SQL statement (`$Q`). Use parameterized queries."
+    severity: CRITICAL
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-89: SQL Injection"], owasp: ["A03:2021 - Injection"], confidence: HIGH}
+    mode: taint
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.cookies.get(...)
+      - pattern: request.headers.get(...)
+      - pattern: request.get_json(...)
+      - pattern: request.json
+      - pattern: request.data
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+      - pattern: request.query_params.get(...)
+      - pattern: sys.argv
+      - pattern: input(...)
+    pattern-sanitizers:
+      - pattern: int(...)
+      - pattern: float(...)
+      - pattern: uuid.UUID(...)
+      - pattern: bool(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $C.execute($Q, ...)
+              - pattern: $C.executemany($Q, ...)
+              - pattern: $C.executescript($Q)
+              - pattern: $C.raw($Q, ...)
+              - pattern: text($Q)
+          - metavariable-pattern:
+              metavariable: $Q
+              patterns:
+                - pattern-either:
+                    - pattern: $A + $B
+                    - pattern: $A % $B
+                    - pattern: $A.format(...)
+                    - pattern: f"...{$Z}..."
+                    - pattern: $Z
+          - focus-metavariable: $Q
+
+  - id: phantom.python.taint-command-injection
+    message: "User-controlled data flows into an OS command (`$Q`). Pass an argument list to subprocess without a shell and validate input."
+    severity: CRITICAL
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-78: OS Command Injection"], owasp: ["A03:2021 - Injection"], confidence: HIGH}
+    mode: taint
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.cookies.get(...)
+      - pattern: request.headers.get(...)
+      - pattern: request.get_json(...)
+      - pattern: request.json
+      - pattern: request.data
+      - pattern: request.GET.get(...)
+      - pattern: request.POST.get(...)
+      - pattern: sys.argv
+      - pattern: input(...)
+    pattern-sanitizers:
+      - pattern: shlex.quote(...)
+      - pattern: int(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: os.system($Q)
+              - pattern: os.popen($Q)
+              - pattern: subprocess.$F($Q, ...)
+              - pattern: subprocess.$F(..., shell=True, args=$Q, ...)
+          - focus-metavariable: $Q
+
+  - id: phantom.python.taint-code-injection
+    message: "User-controlled data flows into eval/exec (`$Q`)."
+    severity: CRITICAL
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-95: Eval Injection"], owasp: ["A03:2021 - Injection"], confidence: HIGH}
+    mode: taint
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.get_json(...)
+      - pattern: request.json
+      - pattern: request.data
+      - pattern: request.GET.get(...)
+      - pattern: request.POST.get(...)
+      - pattern: input(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: eval($Q)
+              - pattern: exec($Q)
+              - pattern: compile($Q, ...)
+              - pattern: __import__($Q)
+          - focus-metavariable: $Q
+
+  - id: phantom.python.taint-path-traversal
+    message: "User-controlled data flows into a filesystem path (`$Q`). Normalize and confine paths to an allowed base directory."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-22: Path Traversal"], owasp: ["A01:2021 - Broken Access Control"], confidence: MEDIUM}
+    mode: taint
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.view_args[...]
+      - pattern: request.GET.get(...)
+      - pattern: request.POST.get(...)
+      - pattern: request.files[...]
+    pattern-sanitizers:
+      - pattern: werkzeug.utils.secure_filename(...)
+      - pattern: secure_filename(...)
+      - pattern: os.path.basename(...)
+      - pattern: int(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: open($Q, ...)
+              - pattern: send_file($Q, ...)
+              - pattern: send_from_directory($D, $Q, ...)
+              - pattern: os.remove($Q)
+              - pattern: os.unlink($Q)
+              - pattern: shutil.rmtree($Q, ...)
+              - pattern: shutil.copy($Q, ...)
+              - pattern: pathlib.Path($Q)
+              - pattern: Path($Q)
+          - focus-metavariable: $Q
+
+  - id: phantom.python.taint-ssrf
+    message: "User-controlled data flows into an outbound request URL (`$Q`). Validate against an allowlist of hosts."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-918: Server-Side Request Forgery"], owasp: ["A10:2021 - SSRF"], confidence: MEDIUM}
+    mode: taint
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.get_json(...)
+      - pattern: request.json
+      - pattern: request.GET.get(...)
+      - pattern: request.POST.get(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: requests.$M($Q, ...)
+              - pattern: urllib.request.urlopen($Q, ...)
+              - pattern: urlopen($Q, ...)
+              - pattern: httpx.$M($Q, ...)
+              - pattern: aiohttp.ClientSession().$M($Q, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|post|put|patch|delete|head|request|options)$
+          - focus-metavariable: $Q
+
+  - id: phantom.python.taint-xss
+    message: "User-controlled data is rendered without escaping (`$Q`)."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-79: Cross-site Scripting"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    mode: taint
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.GET.get(...)
+      - pattern: request.POST.get(...)
+    pattern-sanitizers:
+      - pattern: escape(...)
+      - pattern: markupsafe.escape(...)
+      - pattern: html.escape(...)
+      - pattern: bleach.clean(...)
+      - pattern: int(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: render_template_string($Q, ...)
+              - pattern: Markup($Q)
+              - pattern: mark_safe($Q)
+              - pattern: HttpResponse($Q)
+              - pattern: make_response($Q)
+              - pattern: Response($Q, ...)
+          - focus-metavariable: $Q
+
+  - id: phantom.python.taint-open-redirect
+    message: "User-controlled data flows into a redirect target (`$Q`). Validate the destination against an allowlist."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-601: Open Redirect"], owasp: ["A01:2021 - Broken Access Control"], confidence: MEDIUM}
+    mode: taint
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.POST.get(...)
+    pattern-sanitizers:
+      - pattern: url_for(...)
+      - pattern: reverse(...)
+      - pattern: is_safe_url(...)
+      - pattern: url_has_allowed_host_and_scheme(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: redirect($Q, ...)
+              - pattern: HttpResponseRedirect($Q)
+          - focus-metavariable: $Q

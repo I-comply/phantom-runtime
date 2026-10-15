@@ -1,0 +1,246 @@
+rules:
+  - id: phantom.js.eval-nonliteral
+    message: "`$F` on a non-literal evaluates arbitrary code. Avoid dynamic evaluation."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-95: Eval Injection"], owasp: ["A03:2021 - Injection"], confidence: HIGH}
+    patterns:
+      - pattern-either:
+          - pattern: eval($X)
+          - pattern: new Function(..., $X)
+          - pattern: setTimeout($X, ...)
+          - pattern: setInterval($X, ...)
+          - pattern: vm.runInNewContext($X, ...)
+          - pattern: vm.runInThisContext($X, ...)
+      - pattern-not: eval("...")
+      - pattern-not: new Function("...")
+      - pattern-not: setTimeout("...", ...)
+      - pattern-not: setInterval("...", ...)
+      - pattern-not: setTimeout(() => {...}, ...)
+      - pattern-not: setInterval(() => {...}, ...)
+      - pattern-not: setTimeout(function () {...}, ...)
+      - pattern-not: setInterval(function () {...}, ...)
+      - metavariable-regex:
+          metavariable: $X
+          regex: ^(?!\s*(?:\(|function|async|[A-Za-z_$][\w$]*\s*=>)).*
+
+  - id: phantom.js.child-process-exec
+    message: "child_process.exec runs the command through a shell. A non-literal command allows command injection; use execFile/spawn with an argument array."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-78: OS Command Injection"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: child_process.exec($CMD, ...)
+          - pattern: child_process.execSync($CMD, ...)
+          - pattern: cp.exec($CMD, ...)
+          - pattern: cp.execSync($CMD, ...)
+          - pattern: exec($CMD, ...)
+          - pattern: execSync($CMD, ...)
+      - pattern-not: child_process.exec("...", ...)
+      - pattern-not: child_process.execSync("...", ...)
+      - pattern-not: cp.exec("...", ...)
+      - pattern-not: cp.execSync("...", ...)
+      - pattern-not: exec("...", ...)
+      - pattern-not: execSync("...", ...)
+
+  - id: phantom.js.taint-command-injection
+    message: "Request data flows into a shell command (`$Q`). Use execFile/spawn with an argument array and validate input."
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-78: OS Command Injection"], owasp: ["A03:2021 - Injection"], confidence: HIGH}
+    mode: taint
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.query.$P
+      - pattern: req.body
+      - pattern: req.body.$P
+      - pattern: req.params
+      - pattern: req.params.$P
+      - pattern: req.headers.$P
+      - pattern: req.cookies.$P
+      - pattern: request.query.$P
+      - pattern: request.body.$P
+      - pattern: request.params.$P
+      - pattern: ctx.query.$P
+      - pattern: ctx.request.body
+      - pattern: process.argv
+    pattern-sanitizers:
+      - pattern: parseInt(...)
+      - pattern: Number(...)
+      - pattern: shellescape(...)
+      - pattern: shellQuote(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: exec($Q, ...)
+              - pattern: execSync($Q, ...)
+              - pattern: child_process.exec($Q, ...)
+              - pattern: child_process.execSync($Q, ...)
+              - pattern: cp.exec($Q, ...)
+              - pattern: spawn($Q, ..., {..., shell: true, ...})
+              - pattern: spawnSync($Q, ..., {..., shell: true, ...})
+          - focus-metavariable: $Q
+
+  - id: phantom.js.taint-code-injection
+    message: "Request data flows into dynamic code evaluation (`$Q`)."
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-95: Eval Injection"], owasp: ["A03:2021 - Injection"], confidence: HIGH}
+    mode: taint
+    pattern-sources:
+      - pattern: req.query.$P
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.body.$P
+      - pattern: req.params.$P
+      - pattern: req.headers.$P
+      - pattern: req.cookies.$P
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: eval($Q)
+              - pattern: new Function($Q)
+              - pattern: new Function(..., $Q)
+              - pattern: vm.runInNewContext($Q, ...)
+              - pattern: vm.runInThisContext($Q, ...)
+              - pattern: require($Q)
+          - focus-metavariable: $Q
+
+  - id: phantom.js.sql-string-building
+    message: "SQL built with concatenation or template interpolation is injectable. Use placeholders: query(sql, [params])."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-89: SQL Injection"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    pattern-either:
+      - pattern: $DB.query("..." + $X, ...)
+      - pattern: $DB.query(`...${$X}...`, ...)
+      - pattern: $DB.execute("..." + $X, ...)
+      - pattern: $DB.execute(`...${$X}...`, ...)
+      - pattern: $DB.raw(`...${$X}...`, ...)
+      - pattern: $DB.raw("..." + $X, ...)
+      - pattern: $DB.$queryRawUnsafe(`...${$X}...`)
+      - pattern: $DB.$executeRawUnsafe(`...${$X}...`)
+
+  - id: phantom.js.taint-sql-injection
+    message: "Request data flows into a SQL statement (`$Q`). Use parameterized queries."
+    severity: CRITICAL
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-89: SQL Injection"], owasp: ["A03:2021 - Injection"], confidence: HIGH}
+    mode: taint
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.query.$P
+      - pattern: req.body
+      - pattern: req.body.$P
+      - pattern: req.params
+      - pattern: req.params.$P
+      - pattern: req.headers.$P
+      - pattern: req.cookies.$P
+      - pattern: ctx.query.$P
+    pattern-sanitizers:
+      - pattern: parseInt(...)
+      - pattern: Number(...)
+      - pattern: mysql.escape(...)
+      - pattern: connection.escape(...)
+      - pattern: sqlstring.escape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.query($Q, ...)
+              - pattern: $DB.execute($Q, ...)
+              - pattern: $DB.raw($Q, ...)
+              - pattern: $DB.$queryRawUnsafe($Q, ...)
+          - metavariable-pattern:
+              metavariable: $Q
+              patterns:
+                - pattern-either:
+                    - pattern: $A + $B
+                    - pattern: $A.concat(...)
+                    - pattern: $Z
+          - focus-metavariable: $Q
+
+  - id: phantom.js.taint-path-traversal
+    message: "Request data flows into a filesystem path (`$Q`). Resolve and confine to a base directory."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-22: Path Traversal"], owasp: ["A01:2021 - Broken Access Control"], confidence: MEDIUM}
+    mode: taint
+    pattern-sources:
+      - pattern: req.query.$P
+      - pattern: req.body.$P
+      - pattern: req.params.$P
+      - pattern: req.headers.$P
+    pattern-sanitizers:
+      - pattern: path.basename(...)
+      - pattern: sanitize(...)
+      - pattern: parseInt(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: fs.readFile($Q, ...)
+              - pattern: fs.readFileSync($Q, ...)
+              - pattern: fs.createReadStream($Q, ...)
+              - pattern: fs.writeFile($Q, ...)
+              - pattern: fs.writeFileSync($Q, ...)
+              - pattern: fs.unlink($Q, ...)
+              - pattern: fs.unlinkSync($Q)
+              - pattern: fs.rm($Q, ...)
+              - pattern: fs.promises.readFile($Q, ...)
+              - pattern: res.sendFile($Q, ...)
+              - pattern: res.download($Q, ...)
+              - pattern: path.join($BASE, $Q)
+          - focus-metavariable: $Q
+
+  - id: phantom.js.taint-ssrf
+    message: "Request data flows into an outbound request URL (`$Q`). Validate against an allowlist of hosts."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-918: Server-Side Request Forgery"], owasp: ["A10:2021 - SSRF"], confidence: MEDIUM}
+    mode: taint
+    pattern-sources:
+      - pattern: req.query.$P
+      - pattern: req.body.$P
+      - pattern: req.params.$P
+      - pattern: req.headers.$P
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: fetch($Q, ...)
+              - pattern: axios($Q, ...)
+              - pattern: axios.$M($Q, ...)
+              - pattern: got($Q, ...)
+              - pattern: got.$M($Q, ...)
+              - pattern: http.get($Q, ...)
+              - pattern: https.get($Q, ...)
+              - pattern: http.request($Q, ...)
+              - pattern: request($Q, ...)
+          - focus-metavariable: $Q
+
+  - id: phantom.js.taint-open-redirect
+    message: "Request data flows into a redirect target (`$Q`). Validate the destination against an allowlist."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-601: Open Redirect"], owasp: ["A01:2021 - Broken Access Control"], confidence: MEDIUM}
+    mode: taint
+    pattern-sources:
+      - pattern: req.query.$P
+      - pattern: req.body.$P
+      - pattern: req.params.$P
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: res.redirect($Q)
+              - pattern: res.redirect($S, $Q)
+              - pattern: res.location($Q)
+              - pattern: ctx.redirect($Q)
+          - focus-metavariable: $Q
+
+  - id: phantom.js.nosql-where-injection
+    message: "$where / mapReduce executes JavaScript supplied in the query (NoSQL injection)."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-943: NoSQL Injection"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    pattern-either:
+      - pattern: "{..., $where: $X, ...}"
+      - pattern: '{..., "$where": $X, ...}'

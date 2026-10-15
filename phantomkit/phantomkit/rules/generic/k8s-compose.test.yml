@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+spec:
+  hostNetwork: true # ruleid: phantom.k8s.host-namespace
+  containers:
+    - name: a
+      image: nginx:latest # ruleid: phantom.k8s.unpinned-image
+      securityContext:
+        privileged: true # ruleid: phantom.k8s.privileged-container
+        runAsUser: 0 # ruleid: phantom.k8s.privilege-escalation
+    - name: b
+      image: nginx:1.25.3 # ok: phantom.k8s.unpinned-image
+      securityContext:
+        privileged: false # ok: phantom.k8s.privileged-container
+      volumeMounts:
+        - mountPath: /var/run/docker.sock # ruleid: phantom.k8s.docker-socket-mount
+          name: sock
+      env:
+        - DB_PASSWORD: s3cretvalue12345 # ruleid: phantom.k8s.secret-literal-in-manifest
+        - DB_USER: admin # ok: phantom.k8s.secret-literal-in-manifest

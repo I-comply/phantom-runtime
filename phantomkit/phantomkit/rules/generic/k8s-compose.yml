@@ -1,0 +1,57 @@
+rules:
+  - id: phantom.k8s.privileged-container
+    message: "Privileged container has full host access."
+    severity: ERROR
+    languages: [yaml]
+    metadata: {category: security, cwe: ["CWE-250: Execution with Unnecessary Privileges"], confidence: HIGH}
+    pattern-either:
+      - pattern: "privileged: true"
+      - pattern: "privileged: 'true'"
+
+  - id: phantom.k8s.host-namespace
+    message: "Pod shares the host's network/PID/IPC namespace."
+    severity: ERROR
+    languages: [yaml]
+    metadata: {category: security, cwe: ["CWE-653: Insufficient Compartmentalization"], confidence: HIGH}
+    pattern-either:
+      - pattern: "hostNetwork: true"
+      - pattern: "hostPID: true"
+      - pattern: "hostIPC: true"
+
+  - id: phantom.k8s.privilege-escalation
+    message: "allowPrivilegeEscalation is enabled or the container may run as root."
+    severity: WARNING
+    languages: [yaml]
+    metadata: {category: security, cwe: ["CWE-269: Improper Privilege Management"], confidence: HIGH}
+    pattern-either:
+      - pattern: "allowPrivilegeEscalation: true"
+      - pattern: "runAsNonRoot: false"
+      - pattern: "runAsUser: 0"
+
+  - id: phantom.k8s.docker-socket-mount
+    message: "Docker socket mounted into a container grants root-equivalent control of the host."
+    severity: ERROR
+    languages: [yaml]
+    metadata: {category: security, cwe: ["CWE-250: Execution with Unnecessary Privileges"], confidence: HIGH}
+    pattern-regex: '/var/run/docker\.sock'
+
+  - id: phantom.k8s.dangerous-capabilities
+    message: "Dangerous Linux capability added to container."
+    severity: ERROR
+    languages: [yaml]
+    metadata: {category: security, cwe: ["CWE-250: Execution with Unnecessary Privileges"], confidence: HIGH}
+    pattern-regex: '(?i)\badd:\s*\[[^\]]*\b(?:SYS_ADMIN|NET_ADMIN|SYS_PTRACE|SYS_MODULE|ALL)\b'
+
+  - id: phantom.k8s.unpinned-image
+    message: "Container image uses :latest or no tag."
+    severity: WARNING
+    languages: [yaml]
+    metadata: {category: supply-chain, confidence: MEDIUM}
+    pattern-regex: '(?m)^\s*-?\s*image:\s*["'']?(?!\$)[\w./\-]+(?::latest)?["'']?\s*$'
+
+  - id: phantom.k8s.secret-literal-in-manifest
+    message: "Secret value committed in a manifest/compose file. Use an external secret store."
+    severity: ERROR
+    languages: [yaml]
+    metadata: {category: secrets, cwe: ["CWE-798: Hard-coded Credentials"], confidence: MEDIUM}
+    pattern-regex: '(?mi)^\s*-?\s*(?:\w*(?:PASSWORD|SECRET|TOKEN|API_?KEY)\w*)\s*:\s*["'']?(?![\s$]|\{\{)(?!changeme|example|xxx)[A-Za-z0-9+/=_\-]{12,}["'']?\s*$'

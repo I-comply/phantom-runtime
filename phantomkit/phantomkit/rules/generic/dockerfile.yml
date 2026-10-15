@@ -1,0 +1,63 @@
+rules:
+  - id: phantom.docker.missing-user
+    message: "Container runs as root: the final stage has no USER instruction. Add a non-root USER."
+    severity: WARNING
+    languages: [dockerfile]
+    metadata: {category: security, cwe: ["CWE-250: Execution with Unnecessary Privileges"], confidence: HIGH}
+    pattern-regex: '(?mi)^FROM\s[^\n]*$(?!(?s:.*)^\s*USER\s+\S)'
+
+  - id: phantom.docker.user-root
+    message: "Container explicitly runs as root."
+    severity: WARNING
+    languages: [dockerfile]
+    metadata: {category: security, cwe: ["CWE-250: Execution with Unnecessary Privileges"], confidence: HIGH}
+    pattern-regex: '(?mi)^\s*USER\s+(?:root|0)(?::\S+)?\s*$'
+
+  - id: phantom.docker.unpinned-base-image
+    message: "Base image is unpinned or uses :latest. Pin a specific tag or, better, a digest (image@sha256:...)."
+    severity: WARNING
+    languages: [dockerfile]
+    metadata: {category: supply-chain, cwe: ["CWE-1357: Reliance on Insufficiently Trustworthy Component"], confidence: HIGH}
+    pattern-regex: '(?mi)^FROM\s+(?:--platform=\S+\s+)?(?!scratch\b)(?!\$)[^\s:@$]+(?::latest)?(?:\s+AS\s+\w+)?[ \t]*$'
+
+  - id: phantom.docker.pipe-to-shell
+    message: "Piping a download into a shell executes unverified remote code at build time. Download, verify a checksum, then run."
+    severity: ERROR
+    languages: [dockerfile, bash]
+    metadata: {category: supply-chain, cwe: ["CWE-494: Download of Code Without Integrity Check"], confidence: HIGH}
+    pattern-regex: '(?i)\b(?:curl|wget)\b[^|\n]*\|\s*(?:sudo\s+)?(?:ba|z|da)?sh\b'
+
+  - id: phantom.docker.add-remote-url
+    message: "ADD from a remote URL is unverified. Use curl/wget with checksum verification, or COPY."
+    severity: WARNING
+    languages: [dockerfile]
+    metadata: {category: supply-chain, cwe: ["CWE-494: Download of Code Without Integrity Check"], confidence: HIGH}
+    pattern-regex: '(?mi)^\s*ADD\s+(?:--\S+\s+)*https?://\S+'
+
+  - id: phantom.docker.secret-in-env
+    message: "Secret baked into the image via ENV/ARG; it persists in image layers. Use BuildKit secrets or runtime injection."
+    severity: ERROR
+    languages: [dockerfile]
+    metadata: {category: secrets, cwe: ["CWE-798: Hard-coded Credentials"], confidence: MEDIUM}
+    pattern-regex: '(?mi)^\s*(?:ENV|ARG)\s+\w*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_?KEY|PRIVATE_?KEY)\w*(?:\s*=\s*|\s+)(?!\$)\S+'
+
+  - id: phantom.docker.chmod-777
+    message: "World-writable permissions (chmod 777)."
+    severity: WARNING
+    languages: [dockerfile, bash]
+    metadata: {category: security, cwe: ["CWE-732: Incorrect Permission Assignment"], confidence: HIGH}
+    pattern-regex: '\bchmod\s+(?:-R\s+)?(?:0?777|a\+rwx|ugo\+rwx)\b'
+
+  - id: phantom.docker.apt-no-recommends
+    message: "apt-get install without --no-install-recommends bloats the image and attack surface."
+    severity: INFO
+    languages: [dockerfile]
+    metadata: {category: best-practice, confidence: MEDIUM}
+    pattern-regex: '(?mi)apt-get\s+install\s+(?!.*--no-install-recommends)[^\n&|;]*'
+
+  - id: phantom.docker.expose-ssh
+    message: "SSH port exposed in container."
+    severity: WARNING
+    languages: [dockerfile]
+    metadata: {category: security, confidence: HIGH}
+    pattern-regex: '(?mi)^\s*EXPOSE\s+(?:.*\s)?22(?:/tcp)?(?:\s|$)'

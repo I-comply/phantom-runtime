@@ -1,0 +1,82 @@
+rules:
+  - id: phantom.python.flask-debug-enabled
+    message: "Flask debug mode exposes the Werkzeug console (remote code execution). Never enable in production."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-489: Active Debug Code"], owasp: ["A05:2021 - Security Misconfiguration"], confidence: HIGH}
+    pattern-either:
+      - pattern: $APP.run(..., debug=True, ...)
+      - pattern: $APP.debug = True
+    fix-regex:
+      regex: debug=True
+      replacement: debug=False
+
+  - id: phantom.python.hardcoded-secret-key
+    message: "Framework SECRET_KEY is hardcoded. Load it from the environment or a secret manager."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-798: Hard-coded Credentials"], owasp: ["A07:2021 - Identification and Authentication Failures"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: SECRET_KEY = "..."
+          - pattern: $APP.config["SECRET_KEY"] = "..."
+          - pattern: $APP.secret_key = "..."
+          - pattern: $APP.config.update(..., SECRET_KEY="...", ...)
+      - pattern-not: SECRET_KEY = ""
+      - pattern-not: $APP.config["SECRET_KEY"] = ""
+
+  - id: phantom.python.insecure-cookie
+    message: "Cookie set without Secure/HttpOnly protections."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-614: Sensitive Cookie Without 'Secure' Attribute"], owasp: ["A05:2021 - Security Misconfiguration"], confidence: MEDIUM}
+    pattern-either:
+      - pattern: $R.set_cookie(..., secure=False, ...)
+      - pattern: $R.set_cookie(..., httponly=False, ...)
+      - pattern: SESSION_COOKIE_SECURE = False
+      - pattern: CSRF_COOKIE_SECURE = False
+      - pattern: SESSION_COOKIE_HTTPONLY = False
+
+  - id: phantom.python.csrf-exempt
+    message: "View exempted from CSRF protection."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-352: CSRF"], owasp: ["A01:2021 - Broken Access Control"], confidence: MEDIUM}
+    pattern-either:
+      - pattern: "@csrf_exempt"
+      - pattern: "@$A.exempt"
+
+  - id: phantom.python.bind-all-interfaces
+    message: "Service binds to all interfaces (0.0.0.0). Bind to localhost or place behind a reverse proxy unless intended."
+    severity: INFO
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-668: Exposure of Resource to Wrong Sphere"], confidence: LOW}
+    pattern-either:
+      - pattern: $APP.run(..., host="0.0.0.0", ...)
+      - pattern: uvicorn.run(..., host="0.0.0.0", ...)
+      - pattern: $S.bind(("0.0.0.0", ...))
+
+  - id: phantom.python.mark-safe-nonliteral
+    message: "Marking a non-literal as safe disables HTML escaping (XSS)."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-79: Cross-site Scripting"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: mark_safe($X)
+          - pattern: Markup($X)
+          - pattern: django.utils.safestring.mark_safe($X)
+      - pattern-not: mark_safe("...")
+      - pattern-not: Markup("...")
+
+  - id: phantom.python.requests-no-timeout
+    message: "HTTP request without a timeout can hang indefinitely. Set timeout=."
+    severity: INFO
+    languages: [python]
+    metadata: {category: reliability, cwe: ["CWE-400: Uncontrolled Resource Consumption"], confidence: MEDIUM}
+    patterns:
+      - pattern: requests.$M(...)
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(get|post|put|patch|delete|head|options)$
+      - pattern-not: requests.$M(..., timeout=..., ...)

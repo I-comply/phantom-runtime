@@ -1,0 +1,159 @@
+rules:
+  - id: phantom.python.unsafe-deserialization
+    message: "`$M.$F` deserializes untrusted data into arbitrary objects (code execution). Use a safe format such as JSON."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-502: Deserialization of Untrusted Data"], owasp: ["A08:2021 - Software and Data Integrity Failures"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: pickle.$F(...)
+          - pattern: cPickle.$F(...)
+          - pattern: dill.$F(...)
+          - pattern: marshal.$F(...)
+          - pattern: shelve.open(...)
+          - pattern: jsonpickle.decode(...)
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(load|loads|Unpickler|decode|open)$
+      - pattern-not: pickle.load("...")
+
+  - id: phantom.python.yaml-unsafe-load
+    message: "yaml.load without a safe Loader can construct arbitrary Python objects. Use yaml.safe_load."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-502: Deserialization of Untrusted Data"], owasp: ["A08:2021 - Software and Data Integrity Failures"], confidence: HIGH}
+    patterns:
+      - pattern: yaml.load($X)
+    fix: yaml.safe_load($X)
+
+  - id: phantom.python.yaml-unsafe-loader
+    message: "yaml.load with an unsafe Loader constructs arbitrary Python objects. Use yaml.safe_load or SafeLoader."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-502: Deserialization of Untrusted Data"], owasp: ["A08:2021 - Software and Data Integrity Failures"], confidence: HIGH}
+    pattern-either:
+      - pattern: yaml.load($X, Loader=yaml.Loader)
+      - pattern: yaml.load($X, Loader=yaml.UnsafeLoader)
+      - pattern: yaml.load($X, Loader=yaml.FullLoader)
+      - pattern: yaml.load($X, yaml.Loader)
+      - pattern: yaml.load($X, yaml.UnsafeLoader)
+      - pattern: yaml.load_all($X, Loader=yaml.Loader)
+
+  - id: phantom.python.weak-hash
+    message: "`hashlib.$F` is a broken hash for security purposes. Use SHA-256+ (or a password KDF such as scrypt/argon2 for passwords)."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-327: Use of a Broken or Risky Cryptographic Algorithm"], owasp: ["A02:2021 - Cryptographic Failures"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.md5(...)
+          - pattern: hashlib.sha1(...)
+          - pattern: hashlib.new("md5", ...)
+          - pattern: hashlib.new("sha1", ...)
+      - pattern-not: hashlib.$F(..., usedforsecurity=False, ...)
+
+  - id: phantom.python.weak-cipher
+    message: "Weak or broken cipher/mode in use. Prefer AES-GCM or ChaCha20-Poly1305."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-327: Use of a Broken or Risky Cryptographic Algorithm"], owasp: ["A02:2021 - Cryptographic Failures"], confidence: HIGH}
+    pattern-either:
+      - pattern: DES.new(...)
+      - pattern: ARC4.new(...)
+      - pattern: Blowfish.new(...)
+      - pattern: AES.new($K, AES.MODE_ECB, ...)
+      - pattern: Cipher(algorithms.TripleDES(...), ...)
+      - pattern: Cipher(algorithms.ARC4(...), ...)
+      - pattern: modes.ECB()
+
+  - id: phantom.python.insecure-random-for-secret
+    message: "`random` is not cryptographically secure; `$F` generates a security-sensitive value. Use the `secrets` module."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-338: Use of Cryptographically Weak PRNG"], owasp: ["A02:2021 - Cryptographic Failures"], confidence: LOW}
+    patterns:
+      - pattern-inside: |
+          def $F(...):
+              ...
+      - metavariable-regex:
+          metavariable: $F
+          regex: (?i).*(token|password|passwd|secret|apikey|api_key|nonce|salt|otp|session|csrf|reset).*
+      - pattern-either:
+          - pattern: random.random()
+          - pattern: random.randint(...)
+          - pattern: random.choice(...)
+          - pattern: random.choices(...)
+          - pattern: random.getrandbits(...)
+
+  - id: phantom.python.tls-verification-disabled
+    message: "TLS certificate verification is disabled, enabling man-in-the-middle attacks."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-295: Improper Certificate Validation"], owasp: ["A07:2021 - Identification and Authentication Failures"], confidence: HIGH}
+    pattern-either:
+      - pattern: requests.$F(..., verify=False, ...)
+      - pattern: httpx.$F(..., verify=False, ...)
+      - pattern: ssl._create_unverified_context(...)
+      - pattern: $CTX.verify_mode = ssl.CERT_NONE
+      - pattern: $CTX.check_hostname = False
+      - pattern: urllib3.disable_warnings(...)
+
+  - id: phantom.python.jwt-signature-not-verified
+    message: "JWT decoded without verifying the signature."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-347: Improper Verification of Cryptographic Signature"], owasp: ["A02:2021 - Cryptographic Failures"], confidence: HIGH}
+    pattern-either:
+      - pattern: jwt.decode(..., verify=False, ...)
+      - pattern: jwt.decode(..., options={..., "verify_signature": False, ...}, ...)
+      - pattern: jwt.decode(..., algorithms=["none"], ...)
+
+  - id: phantom.python.tempfile-mktemp
+    message: "tempfile.mktemp is racy (TOCTOU). Use tempfile.mkstemp or NamedTemporaryFile."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-377: Insecure Temporary File"], confidence: HIGH}
+    pattern: tempfile.mktemp(...)
+
+  - id: phantom.python.tarfile-extractall
+    message: "tarfile.extractall without a filter allows path traversal from crafted archives. Pass filter=\"data\" (Python 3.12+) or validate members."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-22: Path Traversal"], owasp: ["A01:2021 - Broken Access Control"], confidence: MEDIUM}
+    patterns:
+      - pattern: $T.extractall(...)
+      - pattern-not: $T.extractall(..., filter=..., ...)
+      - pattern-not: $T.extractall(..., members=..., ...)
+      - metavariable-regex:
+          metavariable: $T
+          regex: (?i).*(tar|tf|archive).*
+
+  - id: phantom.python.paramiko-auto-add-policy
+    message: "AutoAddPolicy accepts unknown SSH host keys, enabling MITM."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-295: Improper Certificate Validation"], confidence: HIGH}
+    pattern-either:
+      - pattern: $C.set_missing_host_key_policy(paramiko.AutoAddPolicy(...))
+      - pattern: $C.set_missing_host_key_policy(AutoAddPolicy(...))
+
+  - id: phantom.python.insecure-file-permissions
+    message: "World-writable permission set on `$P`."
+    severity: WARNING
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-732: Incorrect Permission Assignment for Critical Resource"], confidence: MEDIUM}
+    pattern-either:
+      - pattern: os.chmod($P, 0o777)
+      - pattern: os.chmod($P, 0o666)
+      - pattern: os.chmod($P, 511)
+      - pattern: os.chmod($P, 0o757)
+
+  - id: phantom.python.xml-xxe
+    message: "XML parsed with entity resolution enabled (XXE). Use defusedxml or disable entities."
+    severity: ERROR
+    languages: [python]
+    metadata: {category: security, cwe: ["CWE-611: XXE"], owasp: ["A05:2021 - Security Misconfiguration"], confidence: MEDIUM}
+    pattern-either:
+      - pattern: etree.XMLParser(..., resolve_entities=True, ...)
+      - pattern: lxml.etree.XMLParser(..., resolve_entities=True, ...)
+      - pattern: xml.sax.make_parser(...)

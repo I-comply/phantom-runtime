@@ -1,0 +1,19 @@
+rules:
+  - id: phantom.python.django-debug-true
+    message: "DEBUG = True leaks stack traces and settings. Disable in production."
+    severity: WARNING
+    languages: [python]
+    paths:
+      include: ["**/*settings*.py", "**/settings/*.py"]
+    metadata: {category: security, cwe: ["CWE-489: Active Debug Code"], owasp: ["A05:2021 - Security Misconfiguration"], confidence: MEDIUM}
+    pattern: DEBUG = True
+
+  - id: phantom.python.django-allowed-hosts-wildcard
+    message: "ALLOWED_HOSTS contains '*' which disables Host header validation."
+    severity: WARNING
+    languages: [python]
+    paths:
+      include: ["**/*settings*.py", "**/settings/*.py"]
+    metadata: {category: security, cwe: ["CWE-346: Origin Validation Error"], confidence: HIGH}
+    pattern-either:
+      - pattern: ALLOWED_HOSTS = [..., "*", ...]

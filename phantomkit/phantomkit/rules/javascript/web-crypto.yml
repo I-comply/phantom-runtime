@@ -1,0 +1,203 @@
+rules:
+  - id: phantom.js.dom-xss-sink
+    message: "Assigning non-literal data to `$P` allows DOM XSS. Use textContent or sanitize with DOMPurify."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-79: Cross-site Scripting"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: $E.innerHTML = $X
+          - pattern: $E.outerHTML = $X
+          - pattern: $E.insertAdjacentHTML($W, $X)
+          - pattern: document.write($X)
+          - pattern: document.writeln($X)
+      - pattern-not: $E.innerHTML = "..."
+      - pattern-not: $E.outerHTML = "..."
+      - pattern-not: document.write("...")
+      - pattern-not: $E.innerHTML = DOMPurify.sanitize(...)
+
+  - id: phantom.js.react-dangerously-set-inner-html
+    message: "dangerouslySetInnerHTML bypasses React's escaping. Ensure the value is sanitized (DOMPurify)."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-79: Cross-site Scripting"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    patterns:
+      - pattern: "dangerouslySetInnerHTML={{__html: $X}}"
+      - pattern-not: "dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(...)}}"
+      - pattern-not: 'dangerouslySetInnerHTML={{__html: "..."}}'
+
+  - id: phantom.js.express-xss-send
+    message: "Request data written into an HTTP response without encoding (reflected XSS)."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-79: Cross-site Scripting"], owasp: ["A03:2021 - Injection"], confidence: MEDIUM}
+    mode: taint
+    pattern-sources:
+      - pattern: req.query.$P
+      - pattern: req.body.$P
+      - pattern: req.params.$P
+    pattern-sanitizers:
+      - pattern: escapeHtml(...)
+      - pattern: DOMPurify.sanitize(...)
+      - pattern: he.encode(...)
+      - pattern: encodeURIComponent(...)
+      - pattern: parseInt(...)
+      - pattern: Number(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: res.send($Q)
+              - pattern: res.write($Q)
+              - pattern: res.end($Q)
+          - focus-metavariable: $Q
+
+  - id: phantom.js.weak-hash
+    message: "`$A` is a broken hash for security purposes. Use SHA-256+ (or scrypt/argon2/bcrypt for passwords)."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-327: Broken or Risky Cryptographic Algorithm"], owasp: ["A02:2021 - Cryptographic Failures"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: crypto.createHash($A)
+          - pattern: createHash($A)
+      - metavariable-regex:
+          metavariable: $A
+          regex: (?i)^["'](md4|md5|sha1|sha-1|ripemd160)["']$
+
+  - id: phantom.js.weak-cipher
+    message: "Weak cipher or ECB mode in use."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-327: Broken or Risky Cryptographic Algorithm"], owasp: ["A02:2021 - Cryptographic Failures"], confidence: MEDIUM}
+    patterns:
+      - pattern-either:
+          - pattern: crypto.createCipheriv($A, ...)
+          - pattern: crypto.createCipher($A, ...)
+          - pattern: crypto.createDecipher($A, ...)
+      - metavariable-regex:
+          metavariable: $A
+          regex: (?i)^["'](des|des3|des-.*|rc4|rc2.*|bf.*|.*-ecb|aes-\d+-ecb)["']$
+
+  - id: phantom.js.deprecated-createcipher
+    message: "crypto.createCipher/createDecipher derive keys without a salt and are removed in modern Node. Use createCipheriv with a random IV."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-327: Broken or Risky Cryptographic Algorithm"], confidence: HIGH}
+    pattern-either:
+      - pattern: crypto.createCipher(...)
+      - pattern: crypto.createDecipher(...)
+
+  - id: phantom.js.insecure-random-for-secret
+    message: "Math.random() is not cryptographically secure; `$F` generates a security-sensitive value. Use crypto.randomBytes / crypto.randomUUID."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-338: Weak PRNG"], owasp: ["A02:2021 - Cryptographic Failures"], confidence: LOW}
+    patterns:
+      - pattern-inside: |
+          function $F(...) {
+            ...
+          }
+      - metavariable-regex:
+          metavariable: $F
+          regex: (?i).*(token|password|secret|apikey|nonce|salt|otp|session|csrf|reset|uuid).*
+      - pattern: Math.random()
+
+  - id: phantom.js.tls-verification-disabled
+    message: "TLS certificate verification is disabled."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-295: Improper Certificate Validation"], owasp: ["A07:2021 - Identification and Authentication Failures"], confidence: HIGH}
+    pattern-either:
+      - pattern: "{..., rejectUnauthorized: false, ...}"
+      - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+      - pattern: process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
+      - pattern: "{..., strictSSL: false, ...}"
+      - pattern: "{..., checkServerIdentity: () => undefined, ...}"
+
+  - id: phantom.js.jwt-insecure
+    message: "JWT verified without a secret/with 'none' algorithm, or signed with a hardcoded secret."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-347: Improper Verification of Cryptographic Signature"], owasp: ["A02:2021 - Cryptographic Failures"], confidence: HIGH}
+    pattern-either:
+      - pattern: jwt.verify($T, $S, {..., algorithms: [..., "none", ...], ...})
+      - pattern: jwt.decode($T, {..., complete: true, ...})
+      - pattern: jwt.sign($P, "...", ...)
+      - pattern: jsonwebtoken.sign($P, "...", ...)
+      - pattern: jwt.verify($T, "...", ...)
+
+  - id: phantom.js.insecure-cookie
+    message: "Cookie/session configured without Secure/HttpOnly protection."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-614: Sensitive Cookie Without 'Secure' Attribute"], owasp: ["A05:2021 - Security Misconfiguration"], confidence: MEDIUM}
+    pattern-either:
+      - pattern: "{..., secure: false, ...}"
+      - pattern: "{..., httpOnly: false, ...}"
+      - pattern: res.cookie($N, $V, {..., secure: false, ...})
+
+  - id: phantom.js.cors-wildcard
+    message: "CORS allows any origin. Restrict `origin` to trusted sites (especially with credentials)."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-942: Permissive Cross-domain Policy"], owasp: ["A05:2021 - Security Misconfiguration"], confidence: MEDIUM}
+    pattern-either:
+      - pattern: cors({..., origin: "*", ...})
+      - pattern: cors({..., origin: true, credentials: true, ...})
+      - pattern: $R.setHeader("Access-Control-Allow-Origin", "*")
+      - pattern: $R.header("Access-Control-Allow-Origin", "*")
+
+  - id: phantom.js.buffer-constructor
+    message: "new Buffer() is deprecated and unsafe (uninitialized memory). Use Buffer.from / Buffer.alloc."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-1188: Insecure Default Initialization"], confidence: HIGH}
+    pattern: new Buffer(...)
+    fix-regex:
+      regex: ^new Buffer\(
+      replacement: Buffer.from(
+
+  - id: phantom.js.prototype-pollution
+    message: "Assignment through a dynamic key can pollute Object.prototype if the key is attacker controlled (`__proto__`, `constructor`)."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-1321: Prototype Pollution"], owasp: ["A08:2021 - Software and Data Integrity Failures"], confidence: LOW}
+    pattern-either:
+      - pattern: $O[$K][$J] = $V
+      - pattern: Object.assign($T, JSON.parse($X))
+      - pattern: _.merge($T, JSON.parse($X))
+      - pattern: _.defaultsDeep($T, req.body)
+
+  - id: phantom.js.postmessage-wildcard
+    message: "postMessage with '*' target origin leaks data to any embedding origin."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-345: Insufficient Verification of Data Authenticity"], confidence: HIGH}
+    pattern: $W.postMessage($M, "*")
+
+  - id: phantom.js.hardcoded-bcrypt-low-rounds
+    message: "bcrypt cost factor `$N` is too low (< 10)."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-916: Insufficient Computational Effort"], owasp: ["A02:2021 - Cryptographic Failures"], confidence: HIGH}
+    patterns:
+      - pattern-either:
+          - pattern: bcrypt.hash($P, $N)
+          - pattern: bcrypt.hashSync($P, $N)
+          - pattern: bcrypt.genSalt($N)
+          - pattern: bcrypt.genSaltSync($N)
+      - metavariable-comparison:
+          metavariable: $N
+          comparison: $N < 10
+
+  - id: phantom.js.eval-like-require
+    message: "require() with a non-literal argument loads arbitrary modules."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata: {category: security, cwe: ["CWE-829: Inclusion of Functionality from Untrusted Control Sphere"], confidence: LOW}
+    patterns:
+      - pattern: require($X)
+      - pattern-not: require("...")
+      - pattern-not: require(`...`)
+      - pattern-not-inside: |
+          require.resolve(...)
