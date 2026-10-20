@@ -23,9 +23,12 @@ Isolation properties, and their limits:
   this repo for a reference implementation of that pattern) rather than as a bare
   subprocess, same as that project's own README caveats for its own worker.
 """
+import logging
 import json
 import os
 import sys
+
+_log = logging.getLogger(__name__)
 
 MAX_OUTPUT = 1 << 20  # 1 MB
 
@@ -43,9 +46,9 @@ def apply_limits():
             try:
                 resource.setrlimit(res, (val, val))
             except (ValueError, OSError):
-                pass
+                _log.debug("could not apply resource limit", exc_info=True)
     except ImportError:
-        pass  # non-POSIX platform: rlimits unavailable, rely on the timeout in sandbox.py
+        _log.debug("resource module unavailable on this platform; relying on the sandbox timeout", exc_info=True)
 
 
 SAFE_BUILTINS = {

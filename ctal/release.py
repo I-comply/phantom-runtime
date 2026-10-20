@@ -7,6 +7,7 @@ build attestation (no SLSA provenance, no reproducible-build claim).
 """
 from __future__ import annotations
 
+import logging
 import importlib.metadata
 import os
 import platform
@@ -16,6 +17,8 @@ from .canon import canonical_bytes, digest_obj, sha256_hex
 from .export import sign_doc
 from .keys import ALGORITHM, Signer, TrustStore, VerifyError
 from .timeutil import fmt_ts, now_utc
+
+_log = logging.getLogger(__name__)
 
 ROOT = os.path.dirname(__file__)
 
@@ -43,7 +46,7 @@ def sbom() -> dict:
             comps.append({"type": "library", "name": dist, "version": importlib.metadata.version(dist),
                           "purl": "pkg:pypi/%s@%s" % (dist, importlib.metadata.version(dist))})
         except importlib.metadata.PackageNotFoundError:
-            pass
+            _log.debug("package metadata not found for optional dependency", exc_info=True)
     return {"bomFormat": "CycloneDX", "specVersion": "1.5", "version": 1,
             "metadata": {"component": {"type": "application", "name": "ctal", "version": "0.2.0"},
                          "properties": [{"name": "python", "value": platform.python_version()}]},

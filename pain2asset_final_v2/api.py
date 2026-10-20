@@ -72,4 +72,4 @@ async def websocket_chat(websocket: WebSocket):
             response_text = await llm_router.generate_response(data[:8000])
             await websocket.send_json({"sender": "Pain2Asset AI", "message": response_text})
     except WebSocketDisconnect:
-        pass
+        logger.debug("websocket client disconnected", exc_info=True)

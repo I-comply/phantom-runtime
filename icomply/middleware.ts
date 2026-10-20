@@ -33,7 +33,10 @@ export function middleware(req: NextRequest) {
     try {
       const [u, ...rest] = atob(h.slice(6)).split(':');
       if (safeEqual(u, user) && safeEqual(rest.join(':'), pass)) return NextResponse.next();
-    } catch {}
+    } catch (err) {
+      // Malformed Basic credentials fall through to the 401 below.
+      console.warn('middleware: invalid Authorization header', err instanceof Error ? err.message : err);
+    }
   }
   return deny(401, 'Authentication required', { 'WWW-Authenticate': 'Basic realm="iComply"' });
 }

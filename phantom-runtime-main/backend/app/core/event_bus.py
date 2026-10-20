@@ -119,7 +119,8 @@ class EventBus:
             conn = None
             try:
                 conn = self._connect()
-                conn.cursor().execute(f"LISTEN {CHANNEL}")
+                from psycopg2 import sql
+                conn.cursor().execute(sql.SQL("LISTEN {}").format(sql.Identifier(CHANNEL)))
                 self._ready.set()
                 delay = RECONNECT_MIN_S
                 while not self._stop.is_set():
@@ -136,7 +137,7 @@ class EventBus:
                     try:
                         conn.close()
                     except Exception:
-                        pass
+                        log.debug("closing listener connection failed", exc_info=True)
 
     def _dispatch(self, payload: str) -> None:
         loop, deliver = self._loop, self._deliver
@@ -173,7 +174,7 @@ class EventBus:
                     try:
                         conn.close()
                     except Exception:
-                        pass
+                        log.debug("closing connection failed", exc_info=True)
 
 
 from app.core.config import settings  # noqa: E402
