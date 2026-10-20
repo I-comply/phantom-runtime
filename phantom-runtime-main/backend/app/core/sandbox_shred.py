@@ -8,10 +8,13 @@ SANDBOX_SHRED_DIRS (os.pathsep-separated) before exiting — on normal exit,
 exception, SIGTERM and SIGINT. SIGKILL / power loss cannot be trapped; there the
 guarantee is that the mounts are tmpfs, so nothing was ever on physical media
 and the kernel frees the pages with the container."""
+import logging
 import os
 import signal
 import subprocess
 import sys
+
+_log = logging.getLogger(__name__)
 
 _CHUNK = 1 << 16
 
@@ -40,12 +43,12 @@ def shred_tree(root: str) -> int:
                 os.unlink(path)
                 n += 1
             except OSError:
-                pass
+                _log.debug("could not remove file during shred", exc_info=True)
         for name in dirnames:
             try:
                 os.rmdir(os.path.join(dirpath, name))
             except OSError:
-                pass
+                _log.debug("could not remove directory during shred", exc_info=True)
     return n
 
 

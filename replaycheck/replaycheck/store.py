@@ -1,4 +1,7 @@
+import logging
 import contextlib, json, sqlite3
+
+_log = logging.getLogger(__name__)
 
 
 def _ro(path):
@@ -36,7 +39,7 @@ def load_events(path, table="events", payload_col="payload", order_col="rowid"):
                         try:
                             v = json.loads(v)
                         except ValueError:
-                            pass
+                            _log.debug("value is not JSON; keeping raw string", exc_info=True)
                     d[k] = v
                 out.append(d)
         return out

@@ -75,5 +75,5 @@ class LeaderElector:
                     try:
                         conn.close()
                     except Exception:
-                        pass
+                        log.debug("closing leader connection failed", exc_info=True)
             self._stop.wait(self.retry_s)
