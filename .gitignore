@@ -60,3 +60,7 @@ tmp/
 ctal.db
 ctal.db-*
 ctal-export-*.zip
+
+# added: secrets, dependencies, build output
+*.pyc
+*.p12
