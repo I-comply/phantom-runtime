@@ -4,4 +4,4 @@ pydantic>=2.0.0
 pytest>=7.4.0
 httpx>=0.24.0
 redis>=5.0.0
-fakeredis>=2.20.0
+fakeredis>=2.40.0
