@@ -67,7 +67,7 @@ jobs:
         working-directory: phantom-runtime-main/frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: "20" }
       # No package-lock.json (yarn.lock is out of sync with package.json), so npm re-resolves every run.
       # npm 10.8.2 (Node 20) crashes in its peer-dependency resolver on the current registry state
