@@ -11,6 +11,7 @@ the file can still rewrite history, which signed checkpoints held elsewhere
 """
 from __future__ import annotations
 
+import logging
 import hashlib
 import json
 import os
@@ -24,6 +25,8 @@ from typing import Callable, Dict, Iterable, List, Optional
 from .canon import canonical_bytes, digest_obj, sha256_hex
 from .contracts import EVENT_TYPES
 from .timeutil import fmt_ts, now_utc, parse_ts
+
+_log = logging.getLogger(__name__)
 
 EVENT_SCHEMA = "ctal.event.v1"
 GENESIS = "0" * 64
@@ -74,7 +77,7 @@ class Store:
             try:
                 c.execute("ROLLBACK")
             except sqlite3.Error:
-                pass
+                _log.debug("rollback after failed transaction also failed", exc_info=True)
             raise
         finally:
             c.close()

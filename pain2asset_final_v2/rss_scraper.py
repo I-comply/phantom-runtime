@@ -53,7 +53,7 @@ class FullyHardenedScraper:
             try:
                 await self._task
             except asyncio.CancelledError:
-                pass
+                logger.debug("scraper task cancelled during shutdown", exc_info=True)
         logger.info("Fully Hardened Scraper stopped.")
 
     async def _run_loop(self) -> None:

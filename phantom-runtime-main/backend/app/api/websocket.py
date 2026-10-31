@@ -60,7 +60,7 @@ async def _reject(websocket: WebSocket, code: int, error: str):
         await websocket.send_json({"type": "auth_error" if code == CLOSE_UNAUTHORIZED else "error", "error": error})
         await websocket.close(code=code)
     except Exception:
-        pass
+        logger.debug("could not deliver error frame before close", exc_info=True)
 
 
 async def _authenticate(websocket: WebSocket) -> Optional[Principal]:
@@ -153,7 +153,7 @@ async def websocket_events(websocket: WebSocket):
                 verified = time.monotonic()
             await websocket.send_json({"type": "heartbeat", "timestamp": datetime.utcnow().isoformat()})
     except WebSocketDisconnect:
-        pass
+        logger.debug("websocket client disconnected", exc_info=True)
     finally:
         manager.disconnect(websocket)
 
@@ -231,7 +231,7 @@ async def websocket_metrics(websocket: WebSocket):
             })
             await asyncio.sleep(METRICS_INTERVAL_S)
     except WebSocketDisconnect:
-        pass
+        logger.debug("metrics websocket client disconnected", exc_info=True)
 
 
 def event_message(event_data: Dict[str, Any]) -> Dict[str, Any]:
