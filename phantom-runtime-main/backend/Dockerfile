@@ -1,5 +1,5 @@
 # nosem: phantom.docker.missing-user -- root required for sandbox privilege drop (see below)
-FROM python:3.11-slim
+FROM python:3.15-slim
 
 # Deliberately root: app/core/sandbox.py's subprocess driver drops privilege to
 # an unprivileged uid (65534) for each plugin/strategy execution, which needs
