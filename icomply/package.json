@@ -10,7 +10,7 @@
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^7.10.1",
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
     "next": "^16.4.0",
